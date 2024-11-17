@@ -1,0 +1,12 @@
+{
+  "name": "vtlr",
+  "version": "0.0.1",
+  "description": "schedule notification butler service by voice",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
