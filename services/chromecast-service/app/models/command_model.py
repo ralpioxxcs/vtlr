@@ -7,7 +7,7 @@ class Commands(str, Enum):
 class Parameter(BaseModel):
   text: str
   language: str
-  volumn: float
+  volume: float
 
 class CommandRequest(BaseModel):
   command: str

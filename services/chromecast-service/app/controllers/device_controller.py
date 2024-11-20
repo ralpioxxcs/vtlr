@@ -12,6 +12,6 @@ async def commandToDevice(device_id: str, request: CommandRequest):
     logger.info(f"device_id: {device_id}")
     logger.info(f"request: {request}")
 
-    result = await voiceToDevice(request.parameters.text, request.parameters.volumn)
+    result = await voiceToDevice(request.parameters.text, request.parameters.volume, request.parameters.language)
 
     return {"status": result}
