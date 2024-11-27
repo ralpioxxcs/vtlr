@@ -5,10 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { SchedulerRegistry } from '@nestjs/schedule';
-import { CronJob } from 'cron';
-import { catchError, lastValueFrom } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
-import { AxiosError } from 'axios';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ScheduleModel } from './entities/schedule.entity';
 import { QueryRunner, Repository } from 'typeorm';
