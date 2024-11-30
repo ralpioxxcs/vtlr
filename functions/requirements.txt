@@ -1,2 +1,4 @@
 pychromecast
 boto3
+gtts
+python-dotenv
