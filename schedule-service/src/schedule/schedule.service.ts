@@ -11,7 +11,9 @@ import { ScheduleModel } from './entities/schedule.entity';
 import { QueryRunner, Repository } from 'typeorm';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
 import { ScheduleType } from './enum/schedule.enum';
-import { CreateScheduleDto } from './dto/schedule.dto';
+import { CronJob } from 'cron';
+import { InvokeCommand, LambdaClient } from '@aws-sdk/client-lambda';
+import { CreateScheduleDto } from './dto/create-schedule.dto';
 
 @Injectable()
 export class ScheduleService {
@@ -42,7 +44,6 @@ export class ScheduleService {
 
   async createSchedule(scheduleDto: CreateScheduleDto) {
     const { type, executionDate, interval } = scheduleDto;
-    console.dir(scheduleDto);
 
     if (type === ScheduleType.oneTime) {
       if (interval) {
@@ -67,53 +68,30 @@ export class ScheduleService {
 
     const newSchedule = await this.scheduleRepository.save(schedule);
 
-    return newSchedule;
+    let cronExpression = '';
+    if (scheduleDto.type === ScheduleType.oneTime) {
+      cronExpression = this.isoToCron(schedule.executionDate.toString());
+    } else if (schedule.type === ScheduleType.recurring) {
+      cronExpression = scheduleDto.interval;
+    }
 
-    // const cronExp = this.isoToCron(schedule.date);
-    //
-    // console.dir(cronExp);
-    //
-    // const cronJobName = 'cronjob';
-    //
-    // const postData = {
-    //   command: 'voice',
-    //   parameters: {
-    //     text: schedule.name,
-    //     language: 'ko',
-    //     volume: 0.6,
-    //   },
-    // };
-    //
-    // const scheduledJob = new CronJob(
-    //   cronExp,
-    //   async () => {
-    //     // call API
-    //     const resp = await lastValueFrom(
-    //       this.httpService
-    //         .post<any>(
-    //           'http://127.0.0.1:8000/devices/123123/commands',
-    //           postData,
-    //         )
-    //         .pipe(
-    //           catchError((error: AxiosError) => {
-    //             throw error;
-    //           }),
-    //         ),
-    //     );
-    //
-    //     console.dir(resp);
-    //
-    //     this.schedulerRegistry.deleteCronJob(cronJobName);
-    //   },
-    //   () => {
-    //     console.log('completed');
-    //   },
-    //   false,
-    //   'UTC',
-    // );
-    //
-    // this.schedulerRegistry.addCronJob(cronJobName, scheduledJob);
-    // scheduledJob.start();
+    const cronJobName = `schedule_${Date().toString()}`;
+    const job = new CronJob(
+      cronExpression,
+      async () => {
+        const result = await this.invokeLambdaFunction({
+          text: scheduleDto.param.content,
+          volume: 50 / 100,
+        });
+        console.dir(result);
+      },
+      'Asia/Seoul',
+    );
+
+    this.schedulerRegistry.addCronJob(cronJobName, job);
+    job.start();
+
+    return newSchedule;
   }
 
   async updateSchedule(id: string, scheduleDto: UpdateScheduleDto) {
@@ -186,13 +164,43 @@ export class ScheduleService {
       throw new Error('Invalid ISO date string');
     }
 
+    const seconds = date.getUTCSeconds();
     const minute = date.getUTCMinutes();
     const hour = date.getUTCHours();
     const dayOfMonth = date.getUTCDate();
     const month = date.getUTCMonth() + 1;
     const dayOfWeek = '*';
 
-    const cronExpression = `${minute} ${hour} ${dayOfMonth} ${month} ${dayOfWeek}`;
+    const cronExpression = `${seconds} ${minute} ${hour} ${dayOfMonth} ${month} ${dayOfWeek}`;
     return cronExpression;
+  }
+
+  private async invokeLambdaFunction(data: any) {
+    const lambdaClient = new LambdaClient({
+      region: 'us-east-1',
+      credentials: {
+        accessKeyId: 'test',
+        secretAccessKey: 'test',
+      },
+      endpoint: 'http://127.0.0.1:4566',
+    });
+    const invokeParams = {
+      FunctionName: 'MyLambdaFunction',
+      Payload: JSON.stringify({
+        data: {
+          text: data.text,
+          volume: data.volume,
+        },
+      }),
+    };
+
+    const { Payload, LogResult } = await lambdaClient.send(
+      new InvokeCommand(invokeParams),
+    );
+
+    const result = Buffer.from(Payload).toString();
+    //const logs = Buffer.from(LogResult, 'base64').toString();
+
+    return result;
   }
 }
