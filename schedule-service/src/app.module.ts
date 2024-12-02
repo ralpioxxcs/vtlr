@@ -12,6 +12,8 @@ import {
 } from './common/const/env-keys.const';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModel } from './schedule/entities/schedule.entity';
+import { TaskModule } from './task/task.module';
+import { TaskModel } from './task/entites/task.entity';
 
 @Module({
   imports: [
@@ -26,10 +28,11 @@ import { ScheduleModel } from './schedule/entities/schedule.entity';
       username: process.env[ENV_DB_USERNAME_KEY],
       password: process.env[ENV_DB_PASSWORD_KEY],
       database: process.env[ENV_DB_DATABASE_KEY],
-      entities: [ScheduleModel],
+      entities: [ScheduleModel,TaskModel],
       synchronize: true,
     }),
     ScheduleModule,
+    TaskModule,
   ],
   controllers: [AppController],
   providers: [AppService],

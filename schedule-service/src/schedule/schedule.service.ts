@@ -1,40 +1,31 @@
 import {
-  BadRequestException,
-  ConflictException,
   Injectable,
+  InternalServerErrorException,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { SchedulerRegistry } from '@nestjs/schedule';
-import { HttpService } from '@nestjs/axios';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ScheduleModel } from './entities/schedule.entity';
 import { QueryRunner, Repository } from 'typeorm';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
-import { ScheduleType } from './enum/schedule.enum';
 import { CronJob } from 'cron';
 import { InvokeCommand, LambdaClient } from '@aws-sdk/client-lambda';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
+import { TaskModel } from 'src/task/entites/task.entity';
+import { TaskStatus } from 'src/task/enum/task.enum';
 
 @Injectable()
 export class ScheduleService {
+  private readonly logger = new Logger(ScheduleService.name);
+
   constructor(
     @InjectRepository(ScheduleModel)
     private readonly scheduleRepository: Repository<ScheduleModel>,
+    @InjectRepository(TaskModel)
+    private readonly taskRepository: Repository<TaskModel>,
     private schedulerRegistry: SchedulerRegistry,
-    private httpService: HttpService,
   ) {}
-
-  async findAllSchedules() {
-    return this.scheduleRepository.find({});
-  }
-
-  async findScheduleById(id: string) {
-    return this.scheduleRepository.findOne({
-      where: {
-        rowId: id,
-      },
-    });
-  }
 
   getRepository(qr?: QueryRunner) {
     return qr
@@ -42,48 +33,68 @@ export class ScheduleService {
       : this.scheduleRepository;
   }
 
+  async findAllSchedules() {
+    this.logger.debug('find all schedules');
+    try {
+      return this.scheduleRepository.find({
+        relations: ['tasks'],
+      });
+    } catch (error) {
+      this.logger.error(`Error occurred finding schedule (err: ${error})`);
+    }
+  }
+
+  async findScheduleById(id: string) {
+    try {
+      return this.scheduleRepository.findOne({
+        where: {
+          rowId: id,
+        },
+        relations: ['tasks'],
+      });
+    } catch (error) {
+      this.logger.error(`Error occurred finding schedule (err: ${error})`);
+    }
+  }
+
   async createSchedule(scheduleDto: CreateScheduleDto) {
-    const { type, executionDate, interval } = scheduleDto;
-
-    if (type === ScheduleType.oneTime) {
-      if (interval) {
-        throw new ConflictException('not supported schedule type');
-      }
-      if (!executionDate) {
-        throw new BadRequestException('oneTime schedule needs executionDate');
-      }
-    }
-    if (type === ScheduleType.recurring) {
-      if (executionDate) {
-        throw new ConflictException('not supported schedule type');
-      }
-      if (!interval) {
-        throw new BadRequestException('recurring schedule needs interval');
-      }
-    }
-
+    // Create a schedule
     const schedule = this.scheduleRepository.create({
       ...scheduleDto,
     });
-
     const newSchedule = await this.scheduleRepository.save(schedule);
 
-    let cronExpression = '';
-    if (scheduleDto.type === ScheduleType.oneTime) {
-      cronExpression = this.isoToCron(schedule.executionDate.toString());
-    } else if (schedule.type === ScheduleType.recurring) {
-      cronExpression = scheduleDto.interval;
-    }
+    // Create a new tasks according to schedule
+    const task = this.createNewTask(newSchedule.rowId, scheduleDto.param);
+    const newTask = await this.taskRepository.save(task);
 
+    // Create a Job
     const cronJobName = `schedule_${Date().toString()}`;
     const job = new CronJob(
-      cronExpression,
+      scheduleDto.interval,
       async () => {
-        const result = await this.invokeLambdaFunction({
-          text: scheduleDto.param.content,
-          volume: 50 / 100,
+        // Get task information
+        const task = await this.taskRepository.find({
+          where: {
+            rowId: newTask.rowId,
+          },
         });
-        console.dir(result);
+
+        // Invoke tasks
+        task.forEach(async (item) => {
+          const result = await this.invokeLambdaFunction({
+            text: item.payload.text,
+            volume: item.payload.volume / 100,
+          });
+          this.logger.log(`lambda result: ${result}`);
+
+          // Update each task
+          item.status = TaskStatus.completed;
+          item.attemps += 1;
+          item.result = result;
+
+          await this.taskRepository.save(item);
+        });
       },
       'Asia/Seoul',
     );
@@ -95,24 +106,7 @@ export class ScheduleService {
   }
 
   async updateSchedule(id: string, scheduleDto: UpdateScheduleDto) {
-    const { title, description, type, executionDate, interval } = scheduleDto;
-
-    if (type === ScheduleType.oneTime) {
-      if (interval) {
-        throw new ConflictException('not supported schedule type');
-      }
-      if (!executionDate) {
-        throw new BadRequestException('oneTime schedule needs executionDate');
-      }
-    }
-    if (type === ScheduleType.recurring) {
-      if (executionDate) {
-        throw new ConflictException('not supported schedule type');
-      }
-      if (!interval) {
-        throw new BadRequestException('recurring schedule needs interval');
-      }
-    }
+    const { title, description, type, interval } = scheduleDto;
 
     const schedule = await this.scheduleRepository.findOne({
       where: {
@@ -142,38 +136,66 @@ export class ScheduleService {
     return newSchedule;
   }
 
+  async deleteAllSchedule() {
+    try {
+      return await this.scheduleRepository.clear();
+    } catch (error) {
+      this.logger.error(`Error occurred on deleting rows (err: ${error})`);
+    }
+  }
+
   async deleteSchedule(id: string) {
-    const schedule = await this.scheduleRepository.findOne({
-      where: {
-        rowId: id,
-      },
-    });
-    if (!schedule) {
-      throw new NotFoundException();
+    try {
+      const schedule = await this.scheduleRepository.findOne({
+        where: {
+          rowId: id,
+        },
+      });
+      if (!schedule) {
+        throw new NotFoundException('not found schedule');
+      }
+
+      return await this.scheduleRepository.remove(schedule);
+    } catch (error) {
+      this.logger.error(`Error occurred deleting schedule (err: ${error})`);
     }
-
-    await this.scheduleRepository.delete(schedule);
-
-    return id;
   }
 
-  private isoToCron(isoDate: string): string {
-    const date = new Date(isoDate);
-
-    if (isNaN(date.getTime())) {
-      throw new Error('Invalid ISO date string');
+  private createNewTask(scheduleId: string, param: any) {
+    try {
+      const newTask = this.taskRepository.create({
+        status: TaskStatus.pending,
+        attemps: 0,
+        payload: param,
+        result: {},
+      });
+      newTask.scheduleId = scheduleId;
+      return newTask;
+    } catch (error) {
+      this.logger.error(
+        `Error occurred saving task according schedule (err: ${error})`,
+      );
+      throw new InternalServerErrorException('Error occurred saving task');
     }
-
-    const seconds = date.getUTCSeconds();
-    const minute = date.getUTCMinutes();
-    const hour = date.getUTCHours();
-    const dayOfMonth = date.getUTCDate();
-    const month = date.getUTCMonth() + 1;
-    const dayOfWeek = '*';
-
-    const cronExpression = `${seconds} ${minute} ${hour} ${dayOfMonth} ${month} ${dayOfWeek}`;
-    return cronExpression;
   }
+
+  // private isoToCron(isoDate: string): string {
+  //   const date = new Date(isoDate);
+  //
+  //   if (isNaN(date.getTime())) {
+  //     throw new Error('Invalid ISO date string');
+  //   }
+  //
+  //   const seconds = date.getUTCSeconds();
+  //   const minute = date.getUTCMinutes();
+  //   const hour = date.getUTCHours();
+  //   const dayOfMonth = date.getUTCDate();
+  //   const month = date.getUTCMonth() + 1;
+  //   const dayOfWeek = '*';
+  //
+  //   const cronExpression = `${seconds} ${minute} ${hour} ${dayOfMonth} ${month} ${dayOfWeek}`;
+  //   return cronExpression;
+  // }
 
   private async invokeLambdaFunction(data: any) {
     const lambdaClient = new LambdaClient({
@@ -199,7 +221,6 @@ export class ScheduleService {
     );
 
     const result = Buffer.from(Payload).toString();
-    //const logs = Buffer.from(LogResult, 'base64').toString();
 
     return result;
   }

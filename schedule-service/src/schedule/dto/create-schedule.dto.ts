@@ -2,9 +2,9 @@ import { PickType } from '@nestjs/mapped-types';
 import { ScheduleModel } from '../entities/schedule.entity';
 import { ScheduleType } from '../enum/schedule.enum';
 import {
-  IsDateString,
   IsEnum,
   IsNotEmpty,
+  IsObject,
   IsOptional,
   IsString,
 } from 'class-validator';
@@ -13,7 +13,6 @@ export class CreateScheduleDto extends PickType(ScheduleModel, [
   'title',
   'description',
   'type',
-  'executionDate',
   'interval',
 ]) {
   @IsString()
@@ -28,15 +27,11 @@ export class CreateScheduleDto extends PickType(ScheduleModel, [
   @IsNotEmpty()
   type: ScheduleType;
 
-  @IsDateString()
-  @IsOptional()
-  executionDate: Date;
-
   @IsString()
-  @IsOptional()
+  @IsNotEmpty()
   interval: string;
 
-  param: {
-    content: string;
-  };
+  @IsObject()
+  @IsNotEmpty()
+  param: any
 }

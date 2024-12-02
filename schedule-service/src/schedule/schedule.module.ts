@@ -5,10 +5,11 @@ import { ScheduleModule as sm } from '@nestjs/schedule';
 import { HttpModule } from '@nestjs/axios';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModel } from './entities/schedule.entity';
+import { TaskModel } from 'src/task/entites/task.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ScheduleModel]),
+    TypeOrmModule.forFeature([ScheduleModel, TaskModel]),
     HttpModule,
     sm.forRoot(),
   ],

@@ -1,29 +1,42 @@
 import { BaseModel } from 'src/common/entities/base.entity';
-import { Column, Entity } from 'typeorm';
+import { Column, Entity, OneToMany } from 'typeorm';
 import { ScheduleType } from '../enum/schedule.enum';
+import { TaskModel } from 'src/task/entites/task.entity';
 
 @Entity({
+  schema: 'vtlr',
   name: 'schedule',
 })
 export class ScheduleModel extends BaseModel {
-  @Column()
+  @Column({
+    type: 'varchar',
+    length: 64,
+  })
   title: string;
 
   @Column({
+    type: 'text',
     nullable: true,
   })
   description: string | null;
 
-  @Column()
+  @Column({
+    type: 'varchar',
+    length: 32,
+  })
   type: ScheduleType;
 
   @Column({
-    nullable: true,
+    type: 'varchar',
+    length: 16,
   })
-  executionDate: Date | null;
+  interval: string;
 
   @Column({
-    nullable: true,
+    type: 'boolean',
   })
-  interval: string | null;
+  active: boolean;
+
+  @OneToMany(() => TaskModel, (task) => task.scheduleId, { cascade: true })
+  tasks: TaskModel[];
 }

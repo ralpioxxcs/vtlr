@@ -25,19 +25,24 @@ export class ScheduleController {
     return this.scheduleService.createSchedule(createSchedule);
   }
 
+  @Delete()
+  async deleteAllSchedule() {
+    return this.scheduleService.deleteAllSchedule();
+  }
+
   @Get('/:scheduleId')
-  async getOneSchedule(@Param() scheduleId: string) {
+  async getOneSchedule(@Param('scheduleId') scheduleId: string) {
     return this.scheduleService.findScheduleById(scheduleId);
   }
 
   @Delete('/:scheduleId')
-  async deleteSchedule(@Param() scheduleId: string) {
+  async deleteSchedule(@Param('scheduleId') scheduleId: string) {
     return this.scheduleService.deleteSchedule(scheduleId);
   }
 
   @Patch('/:scheduleId')
   async patchSchedule(
-    @Param() scheduleId: string,
+    @Param('scheduleId') scheduleId: string,
     @Body() updateSchedule: UpdateScheduleDto,
   ) {
     return this.scheduleService.updateSchedule(scheduleId, updateSchedule);
