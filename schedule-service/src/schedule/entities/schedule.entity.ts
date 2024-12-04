@@ -37,6 +37,6 @@ export class ScheduleModel extends BaseModel {
   })
   active: boolean;
 
-  @OneToMany(() => TaskModel, (task) => task.scheduleId, { cascade: true })
+  @OneToMany(() => TaskModel, (task) => task.schedule, { cascade: true })
   tasks: TaskModel[];
 }

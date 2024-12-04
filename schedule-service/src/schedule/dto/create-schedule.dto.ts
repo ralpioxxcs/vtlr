@@ -8,6 +8,7 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
+import { IsCronExpression } from 'src/common/decorators/is-cron.decorator';
 
 export class CreateScheduleDto extends PickType(ScheduleModel, [
   'title',
@@ -29,9 +30,10 @@ export class CreateScheduleDto extends PickType(ScheduleModel, [
 
   @IsString()
   @IsNotEmpty()
+  @IsCronExpression({ message: 'invalid cron expression' })
   interval: string;
 
   @IsObject()
   @IsNotEmpty()
-  param: any
+  param: any;
 }

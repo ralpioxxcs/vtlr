@@ -1,3 +1,4 @@
+import { Schedule } from 'aws-sdk/clients/pinpoint';
 import { BaseModel } from 'src/common/entities/base.entity';
 import { ScheduleModel } from 'src/schedule/entities/schedule.entity';
 import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
@@ -33,6 +34,5 @@ export class TaskModel extends BaseModel {
   @ManyToOne(() => ScheduleModel, (schedule) => schedule.tasks, {
     onDelete: 'CASCADE',
   })
-  @JoinColumn({ name: 'schedule_id' })
-  scheduleId: string;
+  schedule: ScheduleModel;
 }
