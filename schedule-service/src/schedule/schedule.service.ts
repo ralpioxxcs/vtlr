@@ -148,7 +148,6 @@ export class ScheduleService implements OnModuleInit, OnModuleDestroy {
       );
 
       const diff = adjustedNextExecution.getTime() < referenceTime.getTime();
-
       return diff;
     } catch (err) {
       console.error('Invalid cron expression:', err.message);
@@ -210,12 +209,12 @@ export class ScheduleService implements OnModuleInit, OnModuleDestroy {
 
   async createSchedule(scheduleDto: CreateScheduleDto) {
     // Validate
-
+    //  - one_time, interval should has future date
     if (
       scheduleDto.type === ScheduleType.oneTime &&
-      !this.isCronExpired(scheduleDto.interval)
+      this.isCronExpired(scheduleDto.interval)
     ) {
-      throw new BadRequestException('interval is old date');
+      throw new BadRequestException('execution date is old date');
     }
 
     // Create a schedule
