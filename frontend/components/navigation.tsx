@@ -1,8 +1,8 @@
 "use client";
 
+import { useNavigation } from "@/contexts/navigationContext";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
 import { CiSettings } from "react-icons/ci";
 import { FaHome } from "react-icons/fa";
 import { GoTasklist } from "react-icons/go";
@@ -15,19 +15,15 @@ import {
 import { TfiAlarmClock } from "react-icons/tfi";
 
 export const Navigation = () => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-
-  const toggleCollapse = () => {
-    setIsCollapsed((prev) => !prev);
-  };
+  const { isCollapsed, toggleCollapse } = useNavigation();
 
   const navItems = [
     { label: "홈", path: "/", icon: <FaHome /> },
-    { label: "정각 알림", path: "/on-time", icon: <TfiAlarmClock /> },
     { label: "내 루틴", path: "/routine", icon: <PiClockCounterClockwise /> },
-    { label: "태스크", path: "/task", icon: <GoTasklist /> },
     { label: "이벤트", path: "/event", icon: <MdEventAvailable /> },
-    { label: "설정", path: "/settings", icon: <CiSettings /> },
+    { label: "정각 알림 (준비 중)", path: "/on-time", icon: <TfiAlarmClock /> },
+    { label: "태스크 (준비 중)", path: "/task", icon: <GoTasklist /> },
+    { label: "설정 (준비 중)", path: "/setting", icon: <CiSettings /> },
   ];
 
   const pathname = usePathname();
@@ -36,7 +32,7 @@ export const Navigation = () => {
     <div className="flex h-screen">
       <nav
         className={`${isCollapsed ? "w-16" : "w-64"}
-         bg-gray-800 text-white h-full fixed top-0 left-0 transition-all duration-200`}
+         bg-zinc-700 text-white h-full fixed top-0 left-0 transition-all duration-300 z-4`}
       >
         <div className="flex items-center justify-between p-4">
           <button
@@ -57,7 +53,7 @@ export const Navigation = () => {
               <Link
                 href={item.path}
                 className={`flex items-center gap-4 px-4 py-2 rounded ${
-                  pathname === item.path ? "bg-blue-600" : "hover:bg-gray-700"
+                  pathname === item.path ? "bg-slate-600" : "hover:bg-slate-700"
                 }`}
               >
                 <span className="text-2xl">{item.icon}</span>

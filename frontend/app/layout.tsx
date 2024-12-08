@@ -1,28 +1,39 @@
-import type { Metadata } from "next";
+"use client";
+
 import "./globals.css";
+import {
+  NavigationProvider,
+  useNavigation,
+} from "@/contexts/navigationContext";
 import { Navigation } from "@/components/navigation";
 
-export const metadata: Metadata = {
-  title: {
-    template: "%s | Vutler",
-    default: "Please wait..",
-  },
-  description: "Vutler",
+const Layout = ({ children }: { children: React.ReactNode }) => {
+  const { isCollapsed } = useNavigation();
+
+  return (
+    <div className="flex h-screen">
+      <Navigation />
+      <main
+        className={`flex-1 transition-all duration-300 ${
+          isCollapsed ? "ml-16" : "ml-64"
+        } p-6`}
+      >
+        {children}
+      </main>
+    </div>
+  );
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+const RootLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <html lang="en">
       <body style={{ margin: 0, fontFamily: "Arial, sans-serif" }}>
-        <div className="flex">
-          <Navigation />
-          <main className="flex-1 ml-auto p-6">{children}</main>
-        </div>
+        <NavigationProvider>
+          <Layout>{children}</Layout>
+        </NavigationProvider>
       </body>
     </html>
   );
-}
+};
+
+export default RootLayout;
