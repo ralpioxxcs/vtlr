@@ -93,9 +93,9 @@ export class ScheduleService implements OnModuleInit, OnModuleDestroy {
       : this.scheduleRepository;
   }
 
-  async registerSchedule(schedule: ScheduleModel, task: TaskModel) {
+  async registerSchedule(schedule: ScheduleModel, param: any) {
     // Create a new tasks according to schedule
-    const newTask = await this.createNewTask(schedule, task.payload);
+    const newTask = await this.createNewTask(schedule, param);
 
     return await this.createJob(schedule.interval, newTask);
   }

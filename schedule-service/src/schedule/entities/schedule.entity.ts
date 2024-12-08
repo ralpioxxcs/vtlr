@@ -28,7 +28,7 @@ export class ScheduleModel extends BaseModel {
 
   @Column({
     type: 'varchar',
-    length: 16,
+    length: 64,
   })
   interval: string;
 
