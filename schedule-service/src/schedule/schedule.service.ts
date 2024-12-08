@@ -166,20 +166,27 @@ export class ScheduleService implements OnModuleInit, OnModuleDestroy {
 
     // Invoke tasks
     entities.forEach(async (item) => {
-      const result = await this.invokeLambdaFunction({
-        text: item.payload.text,
-        volume: item.payload.volume / 100,
-      });
-      this.logger.log(`lambda result: ${result}`);
+      try {
+        const result = await this.invokeLambdaFunction({
+          text: item.payload.text,
+          volume: item.payload.volume / 100,
+        });
+        this.logger.log(`lambda result: ${result}`);
 
-      // Update each task
-      item.status = TaskStatus.completed;
-      item.attemps += 1;
-      item.result = result;
+        // Update each task
+        item.status = TaskStatus.completed;
+        item.attemps += 1;
+        item.result = result;
 
-      await this.taskRepository.save(item);
+        await this.taskRepository.save(item);
+        this.logger.debug(`task updated (${JSON.stringify(item, null, 2)})`);
+      } catch (error) {
+        this.logger.error(`Error occurred invoking function (err: ${error})`);
 
-      this.logger.debug(`task updated (${JSON.stringify(item, null, 2)})`);
+        item.status = TaskStatus.failed;
+        await this.taskRepository.save(item);
+        this.logger.debug(`task updated (${JSON.stringify(item, null, 2)})`);
+      }
     });
   }
 
@@ -203,7 +210,11 @@ export class ScheduleService implements OnModuleInit, OnModuleDestroy {
 
   async createSchedule(scheduleDto: CreateScheduleDto) {
     // Validate
-    if (!this.isCronExpired(scheduleDto.interval)) {
+
+    if (
+      scheduleDto.type === ScheduleType.oneTime &&
+      !this.isCronExpired(scheduleDto.interval)
+    ) {
       throw new BadRequestException('interval is old date');
     }
 
