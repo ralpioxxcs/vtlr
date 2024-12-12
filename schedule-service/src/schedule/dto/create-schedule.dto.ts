@@ -2,6 +2,7 @@ import { PickType } from '@nestjs/mapped-types';
 import { ScheduleModel } from '../entities/schedule.entity';
 import { ScheduleType } from '../enum/schedule.enum';
 import {
+    IsBoolean,
   IsEnum,
   IsNotEmpty,
   IsObject,
@@ -15,6 +16,7 @@ export class CreateScheduleDto extends PickType(ScheduleModel, [
   'description',
   'type',
   'interval',
+  'active'
 ]) {
   @IsString()
   @IsNotEmpty()
@@ -32,6 +34,10 @@ export class CreateScheduleDto extends PickType(ScheduleModel, [
   @IsNotEmpty()
   @IsCronExpression({ message: 'invalid cron expression' })
   interval: string;
+
+  @IsBoolean()
+  @IsNotEmpty()
+  active: boolean;
 
   @IsObject()
   @IsNotEmpty()

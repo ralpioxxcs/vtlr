@@ -65,11 +65,12 @@ export class ScheduleService implements OnModuleInit, OnModuleDestroy {
         }
       });
 
-      initEntities.forEach(async (entity) => {
+      for (const entity of initEntities) {
         this.logger.debug(`schedule: ${entity.title}`);
 
         await this.registerSchedule(entity, entity.tasks[0]);
-      });
+        await this.delay(100);
+      }
 
       await qr.commitTransaction();
     } catch (err) {
@@ -198,7 +199,7 @@ export class ScheduleService implements OnModuleInit, OnModuleDestroy {
 
     const serviceName = 'vtlr-service';
     const featureName = 'job';
-    const uniqueId = new Date().toISOString();
+    const uniqueId = new Date().getTime();
     const cronJobName = `${serviceName}:${featureName}:${uniqueId}`;
 
     this.schedulerRegistry.addCronJob(cronJobName, newJob);
@@ -229,42 +230,45 @@ export class ScheduleService implements OnModuleInit, OnModuleDestroy {
   }
 
   async updateSchedule(id: string, scheduleDto: UpdateScheduleDto) {
-    const schedule = await this.scheduleRepository.findOne({
-      where: {
-        rowId: id,
-      },
-    });
-
-    const task = await this.taskRepository.findOne({
-      where: {
-        schedule: {
+    try {
+      const schedule = await this.scheduleRepository.findOne({
+        where: {
           rowId: id,
         },
-      },
-      relations: ['schedule'],
-    });
+      });
 
-    this.logger.log(`asd: ${JSON.stringify(task)}`);
+      const task = await this.taskRepository.findOne({
+        where: {
+          schedule: {
+            rowId: id,
+          },
+        },
+        relations: ['schedule'],
+      });
 
-    if (!schedule) {
-      throw new NotFoundException('not found schedule corresponding id');
+      if (!schedule) {
+        throw new NotFoundException('not found schedule corresponding id');
+      }
+      if (!task) {
+        throw new NotFoundException('not found tasks corresponding id');
+      }
+
+      const mergedSchedule = this.scheduleRepository.merge(
+        schedule,
+        scheduleDto,
+      );
+      const updated = await this.scheduleRepository.save(mergedSchedule);
+
+      const mergedTask = this.taskRepository.merge(task, {
+        payload: scheduleDto.param,
+      });
+      await this.taskRepository.save(mergedTask);
+
+      return updated;
+    } catch (error) {
+      this.logger.error(`Error occurred update schedule (err: ${error})`);
+      throw error;
     }
-    if (!task) {
-      throw new NotFoundException('not found tasks corresponding id');
-    }
-
-    const updatedSchedule = this.scheduleRepository.merge(
-      schedule,
-      scheduleDto,
-    );
-    const newSchedule = await this.scheduleRepository.save(updatedSchedule);
-
-    const updateTask = this.taskRepository.merge(task, {
-      payload: scheduleDto.param,
-    });
-    const newTask = await this.taskRepository.save(updateTask);
-
-    return newSchedule;
   }
 
   async deleteAllSchedule() {
@@ -341,5 +345,9 @@ export class ScheduleService implements OnModuleInit, OnModuleDestroy {
     const result = Buffer.from(Payload).toString();
 
     return result;
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
