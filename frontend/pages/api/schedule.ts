@@ -1,12 +1,20 @@
-const baseURL = "http://127.0.0.1:4000";
+const baseURL = process.env.NEXT_PUBLIC_SCHEDULE_SERVER;
 
-export async function getScheduleList() {
+export async function getScheduleList(type?: string) {
   const url = `${baseURL}/schedule`;
 
   try {
     const response = await fetch(url);
     const json = await response.json();
-    return json;
+
+    let schedules = json;
+    if (type) {
+      schedules = json.filter((item: any) => {
+        return item.type === type;
+      });
+    }
+
+    return schedules;
   } catch (err) {
     console.error(`error is occured (${err})`);
     throw err;
@@ -57,6 +65,26 @@ export async function deleteSchedule(id: string) {
   try {
     const response = await fetch(url, {
       method: "DELETE",
+    });
+    const json = await response.json();
+    console.log(json);
+    return json;
+  } catch (err) {
+    console.error(`error is occured (${err})`);
+    throw err;
+  }
+}
+
+export async function updateSchedule(id:string, patchData: any) {
+  const url = `${baseURL}/schedule/${id}`;
+
+  try {
+    const response = await fetch(url, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(patchData),
     });
     const json = await response.json();
     console.log(json);

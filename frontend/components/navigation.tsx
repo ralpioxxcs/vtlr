@@ -18,12 +18,12 @@ export const Navigation = () => {
   const { isCollapsed, toggleCollapse } = useNavigation();
 
   const navItems = [
-    { label: "홈", path: "/", icon: <FaHome /> },
-    { label: "내 루틴", path: "/routine", icon: <PiClockCounterClockwise /> },
-    { label: "이벤트", path: "/event", icon: <MdEventAvailable /> },
-    { label: "정각 알림 (준비 중)", path: "/on-time", icon: <TfiAlarmClock /> },
-    { label: "태스크 (준비 중)", path: "/task", icon: <GoTasklist /> },
-    { label: "설정 (준비 중)", path: "/setting", icon: <CiSettings /> },
+    { label: "Home", path: "/", icon: <FaHome /> },
+    { label: "Routine", path: "/routine", icon: <PiClockCounterClockwise /> },
+    { label: "Event", path: "/event", icon: <MdEventAvailable /> },
+    { label: "On-Time (준비 중)", path: "/on-time", icon: <TfiAlarmClock /> },
+    { label: "Task (준비 중)", path: "/task", icon: <GoTasklist /> },
+    { label: "Setting (준비 중)", path: "/setting", icon: <CiSettings /> },
   ];
 
   const pathname = usePathname();
@@ -32,7 +32,7 @@ export const Navigation = () => {
     <div className="flex h-screen">
       <nav
         className={`${isCollapsed ? "w-16" : "w-64"}
-         bg-zinc-700 text-white h-full fixed top-0 left-0 transition-all duration-300 z-4`}
+         bg-slate-900 text-white h-full fixed top-0 left-0 transition-all duration-300 z-4`}
       >
         <div className="flex items-center justify-between p-4">
           <button
@@ -53,7 +53,7 @@ export const Navigation = () => {
               <Link
                 href={item.path}
                 className={`flex items-center gap-4 px-4 py-2 rounded ${
-                  pathname === item.path ? "bg-slate-600" : "hover:bg-slate-700"
+                  pathname === item.path ? "bg-slate-700" : "hover:bg-slate-800"
                 }`}
               >
                 <span className="text-2xl">{item.icon}</span>

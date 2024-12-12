@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import Modal from "./popup";
-import { createSchedule } from "@/pages/api/schedule";
+import { createSchedule, getScheduleList } from "@/pages/api/schedule";
 
 interface IButtonProps {
-  scheduleTitle: string;
+  title: string;
   scheduleType: string;
+  setData: any;
 }
 
 function datetimeToCron(datetime: string) {
@@ -46,8 +47,9 @@ function generateCronExpression(daysOfWeek: any, minute: string, hour: string) {
 }
 
 export default function CreateButton({
-  scheduleTitle,
+  title,
   scheduleType,
+  setData,
 }: IButtonProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -71,11 +73,14 @@ export default function CreateButton({
         cronExp = generateCronExpression(daysOfWeek, minute, hour);
       }
 
-      console.log("cronExp: ", cronExp);
-
       await createSchedule(scheduleType, title, content, command, cronExp);
+
+      const response = await getScheduleList(scheduleType);
+      setData(response);
     } catch (error) {
       console.error("Failed to create schedule:", error);
+
+
     } finally {
     }
   };
@@ -86,7 +91,7 @@ export default function CreateButton({
         onClick={openModal}
         className="fixed bottom-4 right-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-2xl shadow-lg transition-all duration-200"
       >
-        {scheduleTitle}
+        {title}
       </button>
 
       <Modal

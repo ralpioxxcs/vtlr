@@ -1,7 +1,12 @@
 "use client";
 
-import { deleteSchedule } from "@/pages/api/schedule";
+import {
+  deleteSchedule,
+  getScheduleList,
+  updateSchedule,
+} from "@/pages/api/schedule";
 import parser from "cron-parser";
+import { useState } from "react";
 
 interface ScheduleProps {
   id: string;
@@ -10,6 +15,7 @@ interface ScheduleProps {
   type: string;
   interval: string;
   active: boolean;
+  setData: any;
 }
 
 export const toSimpleDate = (date: Date) => {
@@ -80,6 +86,7 @@ export default function ScheduleCard({
   type,
   interval,
   active,
+  setData,
 }: ScheduleProps) {
   const nextExecDate = parseCronExpression(interval);
   const cron = describeCronExpression(interval);
@@ -91,10 +98,27 @@ export default function ScheduleCard({
       console.error("Failed to delete schedule:", error);
     } finally {
     }
+    const response = await getScheduleList(type);
+    setData(response);
+  };
+
+  const handleToggle = async (id: string) => {
+    try {
+      await updateSchedule(id, {
+        active: !active
+      });
+    } catch (error) {
+      console.error("Failed to update schedule:", error);
+    } finally {
+    }
+    const response = await getScheduleList(type);
+    setData(response);
+    //setIsOn(!active);
   };
 
   return (
     <div className="relative w-full h-full mx-auto my-2 bg-white shadow-md rounded-lg border border-gray-200 overflow-hidden">
+      {/* Delete button */}
       <button
         onClick={() => handleDelete(id)}
         className="absolute top-2 right-2 text-gray-300 hover:text-gray-700 text-xl font-bold"
@@ -130,14 +154,20 @@ export default function ScheduleCard({
           )}
 
           <div className="flex justify-between items-center mt-2">
-            <span className="text-sm text-gray-500">현재 상태:</span>
-            <span
-              className={`text-sm font-medium ${
-                active ? "text-green-600" : "text-red-600"
+            <span className="text-sm text-gray-500">활성화:</span>
+
+            <div
+              onClick={() => handleToggle(id)}
+              className={`w-8 h-4 flex items-center rounded-full cursor-pointer p-1 transition-colors ${
+                active ? "bg-green-500" : "bg-gray-300"
               }`}
             >
-              {active ? "켜짐" : "꺼짐"}
-            </span>
+              <div
+                className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${
+                  active ? "translate-x-4" : "translate-x-0"
+                }`}
+              ></div>
+            </div>
           </div>
         </div>
       </div>
