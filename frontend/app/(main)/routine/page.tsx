@@ -15,7 +15,7 @@ export default function RoutinePage() {
       try {
         setLoading(true);
 
-        const scheduleList = await getScheduleList("recurring");
+        const scheduleList = await getScheduleList("recurring", "routine");
 
         if (!scheduleList) {
           throw new Error("failed to fetch data");

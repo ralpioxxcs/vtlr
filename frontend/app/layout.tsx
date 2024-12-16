@@ -16,7 +16,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       <main
         className={`flex-1 transition-all duration-300 ${
           isCollapsed ? "ml-16" : "ml-64"
-        } p-6`}
+        } p-2`}
       >
         {children}
       </main>

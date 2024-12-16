@@ -21,7 +21,7 @@ export const Navigation = () => {
     { label: "Home", path: "/", icon: <FaHome /> },
     { label: "Routine", path: "/routine", icon: <PiClockCounterClockwise /> },
     { label: "Event", path: "/event", icon: <MdEventAvailable /> },
-    { label: "On-Time (준비 중)", path: "/on-time", icon: <TfiAlarmClock /> },
+    { label: "On-Time", path: "/on-time", icon: <TfiAlarmClock /> },
     { label: "Task (준비 중)", path: "/task", icon: <GoTasklist /> },
     { label: "Setting (준비 중)", path: "/setting", icon: <CiSettings /> },
   ];
@@ -56,8 +56,14 @@ export const Navigation = () => {
                   pathname === item.path ? "bg-slate-700" : "hover:bg-slate-800"
                 }`}
               >
-                <span className="text-2xl">{item.icon}</span>
-                {!isCollapsed && <span>{item.label}</span>}
+                <span className="text-3xl">
+                  {item.icon}
+                </span>
+                {!isCollapsed && (
+                  <span className="text-lg font-semibold text-gray-300">
+                    {item.label}
+                  </span>
+                )}
               </Link>
             </li>
           ))}

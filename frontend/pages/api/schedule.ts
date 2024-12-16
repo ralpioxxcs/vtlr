@@ -1,20 +1,31 @@
 const baseURL = process.env.NEXT_PUBLIC_SCHEDULE_SERVER;
 
-export async function getScheduleList(type?: string) {
-  const url = `${baseURL}/schedule`;
+function buildUrl(baseUrl: string, params: object) {
+  const url = new URL(baseUrl);
+
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null) {
+      url.searchParams.append(key, value);
+    }
+  }
+
+  return url.toString();
+}
+
+export async function getScheduleList(
+  type?: string,
+  category?: string,
+): Promise<any[]> {
+  const url = buildUrl(`${baseURL}/schedule`, {
+    scheduleType: type,
+    category: category,
+  });
 
   try {
     const response = await fetch(url);
+    console.log(response);
     const json = await response.json();
-
-    let schedules = json;
-    if (type) {
-      schedules = json.filter((item: any) => {
-        return item.type === type;
-      });
-    }
-
-    return schedules;
+    return json;
   } catch (err) {
     console.error(`error is occured (${err})`);
     throw err;
@@ -23,6 +34,7 @@ export async function getScheduleList(type?: string) {
 
 export async function createSchedule(
   type: string,
+  category: string,
   title: string,
   description: string,
   command: string,
@@ -34,6 +46,7 @@ export async function createSchedule(
     const data = {
       title,
       description,
+      category,
       type,
       interval: cronExp,
       active: true,
@@ -75,7 +88,7 @@ export async function deleteSchedule(id: string) {
   }
 }
 
-export async function updateSchedule(id:string, patchData: any) {
+export async function updateSchedule(id: string, patchData: any) {
   const url = `${baseURL}/schedule/${id}`;
 
   try {

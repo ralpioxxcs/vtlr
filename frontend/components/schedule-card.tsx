@@ -113,7 +113,6 @@ export default function ScheduleCard({
     }
     const response = await getScheduleList(type);
     setData(response);
-    //setIsOn(!active);
   };
 
   return (
@@ -164,7 +163,7 @@ export default function ScheduleCard({
             >
               <div
                 className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${
-                  active ? "translate-x-4" : "translate-x-0"
+                  active ? "translate-x-3.5" : "translate-x-0"
                 }`}
               ></div>
             </div>

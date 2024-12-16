@@ -73,14 +73,22 @@ export default function CreateButton({
         cronExp = generateCronExpression(daysOfWeek, minute, hour);
       }
 
-      await createSchedule(scheduleType, title, content, command, cronExp);
+      await createSchedule(
+        scheduleType,
+        scheduleType === "recurring" ? "routine" : "event",
+        title,
+        content,
+        command,
+        cronExp,
+      );
 
-      const response = await getScheduleList(scheduleType);
+      const response = await getScheduleList(
+        scheduleType,
+        scheduleType === "recurring" ? "routine" : "event",
+      );
       setData(response);
     } catch (error) {
       console.error("Failed to create schedule:", error);
-
-
     } finally {
     }
   };

@@ -15,7 +15,7 @@ export default function EventPage() {
       try {
         setLoading(true);
 
-        const scheduleList = await getScheduleList("one_time");
+        const scheduleList = await getScheduleList("one_time", "event");
         if (!scheduleList) {
           throw new Error("failed to fetch data");
         }
