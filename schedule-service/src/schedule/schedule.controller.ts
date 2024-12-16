@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { ScheduleService } from './schedule.service';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
@@ -16,8 +17,11 @@ export class ScheduleController {
   constructor(private readonly scheduleService: ScheduleService) {}
 
   @Get()
-  async getAllSchedules() {
-    return this.scheduleService.findAllSchedules();
+  async getAllSchedules(
+    @Query('type') type: string,
+    @Query('category') category: string,
+  ) {
+    return this.scheduleService.findAllSchedules(type, category);
   }
 
   @Post()
@@ -31,7 +35,9 @@ export class ScheduleController {
   }
 
   @Get('/:scheduleId')
-  async getOneSchedule(@Param('scheduleId') scheduleId: string) {
+  async getOneSchedule(
+    @Param('scheduleId') scheduleId: string,
+  ) {
     return this.scheduleService.findScheduleById(scheduleId);
   }
 

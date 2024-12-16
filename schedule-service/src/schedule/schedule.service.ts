@@ -101,10 +101,14 @@ export class ScheduleService implements OnModuleInit, OnModuleDestroy {
     return await this.createJob(schedule.interval, newTask);
   }
 
-  async findAllSchedules() {
+  async findAllSchedules(type?: string, category?: string) {
     this.logger.debug('find all schedules');
     try {
       const rows = await this.scheduleRepository.find({
+        where: {
+          type: type as ScheduleType,
+          category,
+        },
         relations: ['tasks'],
       });
       return rows;

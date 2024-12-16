@@ -28,6 +28,13 @@ export class ScheduleModel extends BaseModel {
 
   @Column({
     type: 'varchar',
+    length: 32,
+    nullable: true,
+  })
+  category: string | null;
+
+  @Column({
+    type: 'varchar',
     length: 64,
   })
   interval: string;
