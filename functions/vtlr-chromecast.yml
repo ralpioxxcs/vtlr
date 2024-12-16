@@ -1,0 +1,11 @@
+version: 1.0
+provider:
+  name: openfaas
+  gateway: http://192.168.7.17:8080
+functions:
+  vtlr-chromecast:
+    lang: python3
+    handler: .
+    image: ralpioxxcs/vtlr-chromecast:latest
+    environment:
+      CHROMECAST_DEVICE_IP: 192.168.7.8

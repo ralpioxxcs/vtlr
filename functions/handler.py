@@ -19,7 +19,12 @@ import boto3
 load_dotenv()
 
 def upload_file_to_s3(file_name, bucket_name, object_name=None):
-    s3_client = boto3.client('s3')
+    s3_client = boto3.client('s3',
+                             endpoint_url='http://192.168.7.13:9000',
+                             aws_access_key_id='minioadmin',
+                             aws_secret_access_key='minioadmin',
+                             region_name='us-east-1',
+                             use_ssl=False)
     if object_name is None:
         object_name = file_name
 
@@ -38,7 +43,12 @@ def upload_file_to_s3(file_name, bucket_name, object_name=None):
         return False
 
 def generate_presigned_url(bucket_name, object_name, expiration=3600, method="get"):
-    s3_client = boto3.client('s3', endpoint_url='http://192.168.7.12:4566')
+    s3_client = boto3.client('s3',
+                             endpoint_url='http://192.168.7.13:9000',
+                             aws_access_key_id='minioadmin',
+                             aws_secret_access_key='minioadmin',
+                             region_name='us-east-1',
+                             use_ssl=False)
 
     try:
         if method.lower() == "get":
@@ -92,11 +102,11 @@ class MyMediaStatusListener(MediaStatusListener):
     def load_media_failed(self, item: int, error_code: int) -> None:
         print("load media failed!")
 
-def lambda_handler(event, context):
-    data = event.get('data', None)
+def handle(req):
+    body_json = json.loads(req)
 
-    text = data.get('text', None)
-    volume = data.get('volume', None)
+    text = body_json['text']
+    volume = body_json['volume']
 
     result = commandToDevice(text, volume, "en")
 
@@ -121,7 +131,7 @@ def commandToDevice(text: str, volume: float, lang: str):
     tts = gTTS(text, lang=lang, slow=True)
     tts.save(fname)
 
-    bucket_name = 'tts-bucket'
+    bucket_name = 'vtlr-tts'
     object_name = 'tts.mp3'
 
     success = upload_file_to_s3(fname, bucket_name, object_name)
