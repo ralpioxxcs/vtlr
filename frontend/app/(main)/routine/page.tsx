@@ -6,9 +6,9 @@ import { getScheduleList } from "@/pages/api/schedule";
 import { useEffect, useState } from "react";
 
 export default function RoutinePage() {
-  const [data, setData] = useState([]);
+  const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string>("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -22,7 +22,9 @@ export default function RoutinePage() {
         }
         setData(scheduleList);
       } catch (error: unknown) {
-        setError(error.message);
+        if(error instanceof Error) {
+          setError(error.message);
+        }
       } finally {
         setLoading(false);
       }

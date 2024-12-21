@@ -6,9 +6,9 @@ import { getScheduleList } from "@/pages/api/schedule";
 import { useEffect, useState } from "react";
 
 export default function EventPage() {
-  const [data, setData] = useState([]);
+  const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string>("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -20,8 +20,10 @@ export default function EventPage() {
           throw new Error("failed to fetch data");
         }
         setData(scheduleList);
-      } catch (error: unknown) {
-        setError(error.message);
+      } catch (error) {
+        if(error instanceof Error) {
+          setError(error.message);
+        }
       } finally {
         setLoading(false);
       }

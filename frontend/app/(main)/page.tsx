@@ -5,9 +5,9 @@ import { getScheduleList } from "@/pages/api/schedule";
 import { useEffect, useState } from "react";
 
 export default function Home() {
-  const [data, setData] = useState([]);
+  const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string>("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -23,7 +23,9 @@ export default function Home() {
         }
         setData(scheduleList);
       } catch (error: unknown) {
-        setError(error.message);
+        if(error instanceof Error) {
+          setError(error.message);
+        }
       } finally {
         setLoading(false);
       }

@@ -49,7 +49,7 @@ export default function OnTime() {
 
   const syncDatas = async (hour: number) => {
     const onTimeScheduleList = await getScheduleList("recurring", "on_time");
-    let hourList: { active: boolean; rowId: string }[] = Array.from(
+    const hourList: { active: boolean; rowId: string }[] = Array.from(
       { length: 24 },
       () => ({
         active: false,
@@ -209,7 +209,7 @@ export default function OnTime() {
           </h2>
           <textarea
             className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            rows="2"
+            rows={2}
             value={allHoursText}
             onChange={(e) => setAllHoursText(e.target.value)}
             placeholder="여기에 텍스트를 입력하세요"

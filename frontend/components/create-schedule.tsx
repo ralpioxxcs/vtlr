@@ -68,7 +68,7 @@ export default function CreateButton({
     try {
       let cronExp = "";
       if (scheduleType === "one_time") {
-        cronExp = datetimeToCron(datetime);
+        cronExp = datetimeToCron(datetime as string);
       } else if (scheduleType === "recurring") {
         cronExp = generateCronExpression(daysOfWeek, minute, hour);
       }
