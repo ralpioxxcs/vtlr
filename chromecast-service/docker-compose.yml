@@ -1,0 +1,15 @@
+version: "3.8"
+
+services:
+  chromecast-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    ports:
+      - "4001:4001"
+    env_file:
+      - .env
+    volumes:
+      - .:/app  
+
