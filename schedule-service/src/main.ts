@@ -12,6 +12,7 @@ async function bootstrap() {
     origin: '*',
     credentials: true,
   });
+  app.setGlobalPrefix('v1.0/scheduler', {});
 
   const config = new DocumentBuilder()
     .setTitle('vtlr')

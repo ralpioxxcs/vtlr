@@ -16,7 +16,7 @@ export async function getScheduleList(
   type?: string,
   category?: string,
 ): Promise<any[]> {
-  const url = buildUrl(`${baseURL}/schedule`, {
+  const url = buildUrl(`${baseURL}/v1.0/scheduler/schedule`, {
     scheduleType: type,
     category: category,
   });
@@ -40,7 +40,7 @@ export async function createSchedule(
   command: string,
   cronExp: string,
 ) {
-  const url = `${baseURL}/schedule`;
+  const url = `${baseURL}/v1.0/scheduler/schedule`;
 
   try {
     const data = {
@@ -73,7 +73,7 @@ export async function createSchedule(
 }
 
 export async function deleteSchedule(id: string) {
-  const url = `${baseURL}/schedule/${id}`;
+  const url = `${baseURL}/v1.0/scheduler/schedule/${id}`;
 
   try {
     const response = await fetch(url, {
@@ -89,7 +89,7 @@ export async function deleteSchedule(id: string) {
 }
 
 export async function updateSchedule(id: string, patchData: any) {
-  const url = `${baseURL}/schedule/${id}`;
+  const url = `${baseURL}/v1.0/scheduler/schedule/${id}`;
 
   try {
     const response = await fetch(url, {

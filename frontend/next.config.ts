@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
   },
   output: "standalone",
   env: {
-    NEXT_PUBLIC_SCHEDULE_SERVER: "http://api.vutler.local",
+    NEXT_PUBLIC_SCHEDULE_SERVER: "http://api.vutler.io",
   },
 };
 

@@ -1,7 +1,7 @@
 version: 1.0
 provider:
   name: openfaas
-  gateway: http://192.168.7.17:8080
+  gateway: http://192.168.7.16:8080
 functions:
   vtlr-chromecast:
     lang: python3

@@ -4,6 +4,10 @@ from utils.validators import validate_chromecast_dto
 
 bp = Blueprint('chromecast', __name__, url_prefix='/v1.0/chromecast')
 
+@bp.route('/', methods=['GET'])
+def hello():
+    return "Hello!"
+
 @bp.route('/device/<deviceId>', methods=['POST'])
 def chromecast_device(deviceId):
     data = request.get_json()

@@ -13,12 +13,13 @@ import { ScheduleModel } from './entities/schedule.entity';
 import { DataSource, QueryRunner, Repository } from 'typeorm';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
 import { CronJob } from 'cron';
-import { InvokeCommand, LambdaClient } from '@aws-sdk/client-lambda';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { TaskModel } from 'src/task/entites/task.entity';
 import { TaskStatus } from 'src/task/enum/task.enum';
 import * as cronParser from 'cron-parser';
 import { ScheduleType } from './enum/schedule.enum';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class ScheduleService implements OnModuleInit, OnModuleDestroy {
@@ -31,6 +32,7 @@ export class ScheduleService implements OnModuleInit, OnModuleDestroy {
     private readonly taskRepository: Repository<TaskModel>,
     private schedulerRegistry: SchedulerRegistry,
     private readonly dataSource: DataSource,
+    private readonly httpService: HttpService,
   ) {}
 
   async onModuleInit() {
@@ -174,6 +176,7 @@ export class ScheduleService implements OnModuleInit, OnModuleDestroy {
         const result = await this.invokeLambdaFunction({
           text: item.payload.text,
           volume: item.payload.volume / 100,
+          language: 'ko'
         });
         this.logger.log(`lambda result: ${result}`);
 
@@ -324,31 +327,23 @@ export class ScheduleService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async invokeLambdaFunction(data: any) {
-    const lambdaClient = new LambdaClient({
-      region: 'us-east-1',
-      credentials: {
-        accessKeyId: 'test',
-        secretAccessKey: 'test',
-      },
-      endpoint: 'http://127.0.0.1:4566',
-    });
-    const invokeParams = {
-      FunctionName: process.env.LAMBDA_FUNCTION_NAME,
-      Payload: JSON.stringify({
-        data: {
-          text: data.text,
-          volume: data.volume,
-        },
-      }),
-    };
+    const deviceId = 123123;
+    const URL = `http://${process.env.CHROMECAST_SERVICE_HOST}/v1.0/chromecast/device/${deviceId}`;
 
-    const { Payload } = await lambdaClient.send(
-      new InvokeCommand(invokeParams),
-    );
-
-    const result = Buffer.from(Payload).toString();
-
-    return result;
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(URL, data, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }),
+      );
+      this.logger.log('Response:', response.data);
+      return response.data;
+    } catch (error) {
+      this.logger.error('Error:', error.message);
+      throw error;
+    }
   }
 
   private delay(ms: number): Promise<void> {
