@@ -55,6 +55,7 @@ export async function createSchedule(
       param: {
         text: command,
         volume: 50,
+        language: 'ko'
       },
     };
 
