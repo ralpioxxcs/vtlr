@@ -5,6 +5,7 @@ import {
   NavigationProvider,
   useNavigation,
 } from "@/contexts/navigationContext";
+import { TanstackQueryProvider } from "@/contexts/tanstackQueryContext";
 import { Navigation } from "@/components/navigation";
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
@@ -14,7 +15,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     <div className="flex h-screen">
       <Navigation />
       <main
-        className={`flex-1 transition-all duration-300 ${
+        className={`flex-1 flex flex-col transition-all duration-300 ${
           isCollapsed ? "ml-16" : "ml-64"
         } p-2`}
       >
@@ -27,9 +28,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 const RootLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <html lang="en">
-      <body style={{ margin: 0, fontFamily: "Arial, sans-serif" }}>
+      <body className="font-[Arial,sans-serif]">
         <NavigationProvider>
-          <Layout>{children}</Layout>
+          <TanstackQueryProvider>
+            <Layout>{children}</Layout>
+          </TanstackQueryProvider>
         </NavigationProvider>
       </body>
     </html>
