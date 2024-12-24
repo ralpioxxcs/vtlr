@@ -1,3 +1,5 @@
+import type { ScheduleList } from "Type";
+
 const baseURL = process.env.NEXT_PUBLIC_SCHEDULE_SERVER;
 
 function buildUrl(baseUrl: string, params: object) {
@@ -15,7 +17,7 @@ function buildUrl(baseUrl: string, params: object) {
 export async function getScheduleList(
   type?: string,
   category?: string,
-): Promise<any[]> {
+): Promise<ScheduleList[]> {
   const url = buildUrl(`${baseURL}/v1.0/scheduler/schedule`, {
     scheduleType: type,
     category: category,
@@ -53,6 +55,7 @@ export async function createSchedule(
       param: {
         text: command,
         volume: 50,
+        language: 'ko'
       },
     };
 

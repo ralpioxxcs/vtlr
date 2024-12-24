@@ -1,21 +1,18 @@
 "use client";
 
-import {
-  deleteSchedule,
-  getScheduleList,
-  updateSchedule,
-} from "@/pages/api/schedule";
+import { deleteSchedule, updateSchedule } from "@/pages/api/schedule";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { ScheduleList } from "Type";
 import parser from "cron-parser";
-import { useState } from "react";
 
 interface ScheduleProps {
-  id: string;
-  title: string;
-  description: string;
-  type: string;
-  interval: string;
-  active: boolean;
-  setData: any;
+  queryId: string;
+  id: ScheduleList["rowId"];
+  title: ScheduleList["title"];
+  description: ScheduleList["description"];
+  type: ScheduleList["type"];
+  interval: ScheduleList["interval"];
+  active: ScheduleList["active"];
 }
 
 export const toSimpleDate = (date: Date) => {
@@ -80,46 +77,36 @@ export const describeCronExpression = (expression: string) => {
 };
 
 export default function ScheduleCard({
+  queryId,
   id,
   title,
   description,
   type,
   interval,
   active,
-  setData,
 }: ScheduleProps) {
   const nextExecDate = parseCronExpression(interval);
   const cron = describeCronExpression(interval);
 
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteSchedule(id);
-    } catch (error) {
-      console.error("Failed to delete schedule:", error);
-    } finally {
-    }
-    const response = await getScheduleList(type);
-    setData(response);
-  };
+  const queryClient = useQueryClient();
+  const { mutate: handleDelete } = useMutation({
+    mutationFn: () => deleteSchedule(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryId] }),
+    onError: (error) => console.error("Failed to delete schedule:", error),
+  });
 
-  const handleToggle = async (id: string) => {
-    try {
-      await updateSchedule(id, {
-        active: !active
-      });
-    } catch (error) {
-      console.error("Failed to update schedule:", error);
-    } finally {
-    }
-    const response = await getScheduleList(type);
-    setData(response);
-  };
+  const { mutate: handleToggle } = useMutation({
+    mutationFn: () => updateSchedule(id, { active: !active }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryId] }),
+    onError: (error) => console.error("Failed to update schedule:", error),
+  });
 
   return (
     <div className="relative w-full h-full mx-auto my-2 bg-white shadow-md rounded-lg border border-gray-200 overflow-hidden">
       {/* Delete button */}
       <button
-        onClick={() => handleDelete(id)}
+        type="button"
+        onClick={() => handleDelete()}
         className="absolute top-2 right-2 text-gray-300 hover:text-gray-700 text-xl font-bold"
       >
         &times;
@@ -153,20 +140,24 @@ export default function ScheduleCard({
           )}
 
           <div className="flex justify-between items-center mt-2">
-            <span className="text-sm text-gray-500">활성화:</span>
+            <label htmlFor="toggle" className="text-sm text-gray-500">
+              활성화:
+            </label>
 
-            <div
-              onClick={() => handleToggle(id)}
+            <button
+              type="button"
+              id="toggle"
+              onClick={() => handleToggle()}
               className={`w-8 h-4 flex items-center rounded-full cursor-pointer p-1 transition-colors ${
                 active ? "bg-green-500" : "bg-gray-300"
               }`}
             >
-              <div
+              <span
                 className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${
                   active ? "translate-x-3.5" : "translate-x-0"
                 }`}
-              ></div>
-            </div>
+              />
+            </button>
           </div>
         </div>
       </div>

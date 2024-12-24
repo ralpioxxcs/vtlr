@@ -1,35 +1,74 @@
 "use client";
 
+import { createSchedule } from "@/pages/api/schedule";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { ScheduleList } from "Type";
+import type { FormEvent, ReactNode } from "react";
 import { useState } from "react";
 
 interface ModalProps {
-  isOpen: boolean;
   onClose: () => void;
-  onSubmit: (
-    title: string,
-    content: string,
-    command: string,
-    datetime?: string,
-    daysOfWeek?: any,
-    minute?: any,
-    hour?: any,
-  ) => void;
-  type: string;
-  children: any;
+  queryId: string;
+  // onSubmit: (
+  //   title: string,
+  //   content: string,
+  //   command: string,
+  //   datetime?: string,
+  //   daysOfWeek?: any,
+  //   minute?: any,
+  //   hour?: any,
+  // ) => void;
+  type: ScheduleList["type"];
+  children: ReactNode;
 }
 
+const datetimeToCron = (datetime: string) => {
+  console.log(`datetime: ${datetime}`);
+
+  const [datePart, timePart] = datetime.split("T");
+  const [_, month, day] = datePart.split("-").map(Number);
+  const [hour, minute] = timePart.split(":").map(Number);
+
+  const cronExpression = `${minute} ${hour} ${day} ${month} *`;
+
+  return cronExpression;
+};
+
+const generateCronExpression = (
+  daysOfWeek: any,
+  minute: string,
+  hour: string,
+) => {
+  const selectedDays = Object.entries(daysOfWeek)
+    .filter(([_, value]) => value)
+    .map(([key]) => {
+      switch (key) {
+        case "mon":
+          return "1";
+        case "tue":
+          return "2";
+        case "wed":
+          return "3";
+        case "thu":
+          return "4";
+        case "fri":
+          return "5";
+        default:
+          return "";
+      }
+    })
+    .join(",");
+
+  return `${minute} ${hour} * * ${selectedDays}`;
+};
+
 export default function Modal({
-  isOpen,
   onClose,
-  onSubmit,
+  queryId,
+  // onSubmit,
   type,
   children,
 }: ModalProps) {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [command, setCommand] = useState("");
-  const [datetime, setDateTime] = useState("");
-
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [daysOfWeek, setDaysOfWeek] = useState({
@@ -58,18 +97,79 @@ export default function Modal({
     }
   };
 
-  const handleSubmit = async (e: any) => {
-    onSubmit(title, content, command, datetime, daysOfWeek, minute, hour);
+  const queryClient = useQueryClient();
+  const { mutate: handleCreate } = useMutation({
+    mutationFn: ({
+      title,
+      content,
+      command,
+      cronExp,
+    }: {
+      title: string;
+      content: string;
+      command: string;
+      cronExp: string;
+    }) =>
+      createSchedule(
+        type,
+        type === "recurring" ? "routine" : "event",
+        title,
+        content,
+        command,
+        cronExp,
+      ),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryId] }),
+    onError: (error) => console.error("Failed to delete schedule:", error),
+  });
+
+  const handleForward = async (
+    title: string,
+    content: string,
+    command: string,
+    datetime?: string,
+    daysOfWeek?: any,
+    minute?: any,
+    hour?: any,
+  ) => {
+    try {
+      let cronExp = "";
+      if (type === "one_time") {
+        cronExp = datetimeToCron(datetime as string);
+      } else if (type === "recurring") {
+        cronExp = generateCronExpression(daysOfWeek, minute, hour);
+      }
+
+      handleCreate({ title, content, command, cronExp });
+    } catch (error) {
+      console.error("Failed to create schedule:", error);
+    } finally {
+    }
+  };
+
+  const handleSubmit = async ({
+    currentTarget: {
+      title: { value: title },
+      content: { value: content },
+      command: { value: command },
+      datetime: { value: datetime },
+    },
+  }: FormEvent<
+    HTMLFormElement &
+      Record<"title" | "content" | "command" | "datetime", HTMLInputElement>
+  >) => {
+    handleForward(title, content, command, datetime, daysOfWeek, minute, hour);
     onClose();
   };
 
-  if (!isOpen) {
-    return null;
-  }
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-      <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h2 className="text-2xl font-bold mb-4">{children}</h2>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
@@ -83,8 +183,6 @@ export default function Modal({
               placeholder="이벤트 제목"
               type="text"
               id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
               required
             />
@@ -100,8 +198,6 @@ export default function Modal({
             <textarea
               placeholder="이벤트 설명"
               id="content"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline h-32"
             />
           </div>
@@ -116,8 +212,6 @@ export default function Modal({
             <input
               placeholder="버틀러가 말할 문장 🗣️"
               id="command"
-              value={command}
-              onChange={(e) => setCommand(e.target.value)}
               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
               required
             />
@@ -134,8 +228,6 @@ export default function Modal({
               <input
                 type="datetime-local"
                 id="datetime"
-                value={datetime}
-                onChange={(e) => setDateTime(e.target.value)}
                 className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                 required
               />
@@ -215,7 +307,7 @@ export default function Modal({
               {isSubmitting ? "만드는 중..." : "만들기"}
             </button>
             <button
-              type="button"
+              type="reset"
               onClick={onClose}
               className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline"
               disabled={isSubmitting}

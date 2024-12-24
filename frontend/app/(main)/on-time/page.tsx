@@ -22,6 +22,7 @@ export default function OnTime() {
           "recurring",
           "on_time",
         );
+
         onTimeScheduleList.forEach(async (schedule) => {
           const hour = schedule.interval.split(" ")[1];
           const active = schedule.active;
@@ -73,7 +74,7 @@ export default function OnTime() {
         "on_time",
         `on_time_schedule_${hour}`,
         `on_time_schedule_${hour}`,
-        "on time",
+        `현재 시각 ${hour}시 입니다.`,
         `0 ${hour} * * *`,
       );
     } else {
