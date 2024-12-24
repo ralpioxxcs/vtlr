@@ -15,6 +15,7 @@ export class CreateScheduleDto extends PickType(ScheduleModel, [
   'title',
   'description',
   'type',
+  'category',
   'interval',
   'active'
 ]) {
@@ -29,6 +30,10 @@ export class CreateScheduleDto extends PickType(ScheduleModel, [
   @IsEnum(ScheduleType)
   @IsNotEmpty()
   type: ScheduleType;
+
+  @IsString()
+  @IsOptional()
+  category: string;
 
   @IsString()
   @IsNotEmpty()

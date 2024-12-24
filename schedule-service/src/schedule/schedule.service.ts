@@ -7,7 +7,7 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
-import { SchedulerRegistry } from '@nestjs/schedule';
+import { Cron, SchedulerRegistry } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ScheduleModel } from './entities/schedule.entity';
 import { DataSource, QueryRunner, Repository } from 'typeorm';
@@ -20,6 +20,8 @@ import * as cronParser from 'cron-parser';
 import { ScheduleType } from './enum/schedule.enum';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 @Injectable()
 export class ScheduleService implements OnModuleInit, OnModuleDestroy {
@@ -33,6 +35,7 @@ export class ScheduleService implements OnModuleInit, OnModuleDestroy {
     private schedulerRegistry: SchedulerRegistry,
     private readonly dataSource: DataSource,
     private readonly httpService: HttpService,
+    @InjectQueue('cronQueue') private readonly cronQueue: Queue,
   ) {}
 
   async onModuleInit() {
@@ -100,7 +103,16 @@ export class ScheduleService implements OnModuleInit, OnModuleDestroy {
     // Create a new tasks according to schedule
     const newTask = await this.createNewTask(schedule, param);
 
-    return await this.createJob(schedule.interval, newTask);
+    let priority = 0;
+    if (schedule.category === 'on_time') {
+      priority = 0;
+    } else if (schedule.category === 'event') {
+      priority = 1;
+    } else if (schedule.category === 'routine') {
+      priority = 2;
+    }
+
+    return await this.createJob(schedule.interval, newTask, priority);
   }
 
   async findAllSchedules(type?: string, category?: string) {
@@ -162,68 +174,35 @@ export class ScheduleService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private async handleTask(task: TaskModel) {
-    // Getting task information
-    const entities = await this.taskRepository.find({
-      where: {
-        rowId: task.rowId,
-      },
-    });
-
-    // Invoke tasks
-    entities.forEach(async (item) => {
-      try {
-        const result = await this.invokeLambdaFunction({
-          text: item.payload.text,
-          volume: item.payload.volume / 100,
-          language: 'ko'
-        });
-        this.logger.log(`lambda result: ${result}`);
-
-        // Update each task
-        item.status = TaskStatus.completed;
-        item.attemps += 1;
-        item.result = result;
-
-        await this.taskRepository.save(item);
-        this.logger.debug(`task updated (${JSON.stringify(item, null, 2)})`);
-      } catch (error) {
-        this.logger.error(`Error occurred invoking function (err: ${error})`);
-
-        item.status = TaskStatus.failed;
-        await this.taskRepository.save(item);
-        this.logger.debug(`task updated (${JSON.stringify(item, null, 2)})`);
-      }
-    });
-  }
-
-  private async createJob(cronExp: string, task: TaskModel) {
-    const newJob = new CronJob(
-      cronExp,
-      () => this.handleTask(task),
-      'Asia/Seoul',
-    );
-
+  private async createJob(cronExp: string, task: TaskModel, priority?: number) {
     const serviceName = 'vtlr-service';
     const featureName = 'job';
     const uniqueId = new Date().getTime();
     const cronJobName = `${serviceName}:${featureName}:${uniqueId}`;
 
-    this.schedulerRegistry.addCronJob(cronJobName, newJob);
-    newJob.start();
-
-    this.logger.log(`new job started (jobId: ${cronJobName})`);
+    const job = await this.cronQueue.add(
+      cronJobName,
+      {
+        task,
+      },
+      {
+        priority: priority || 0,
+        repeat: { pattern: cronExp, tz: 'Asia/Seoul' },
+      },
+    );
+    this.logger.log(`job created: ${JSON.stringify(job.toJSON(), null, 2)}`);
+    //this.logger.log(`new job started (jobId: ${cronJobName})`);
   }
 
   async createSchedule(scheduleDto: CreateScheduleDto) {
-    // Validate
-    //  - one_time, interval should has future date
-    if (
-      scheduleDto.type === ScheduleType.oneTime &&
-      this.isCronExpired(scheduleDto.interval)
-    ) {
-      throw new BadRequestException('execution date is old date');
-    }
+    // if (
+    //   scheduleDto.type === ScheduleType.oneTime &&
+    //   this.isCronExpired(scheduleDto.interval)
+    // ) {
+    //   throw new BadRequestException(
+    //     'interval should has future date when one_time type of schedule',
+    //   );
+    // }
 
     // Create a schedule
     const schedule = this.scheduleRepository.create({
@@ -323,26 +302,6 @@ export class ScheduleService implements OnModuleInit, OnModuleDestroy {
         `Error occurred saving task according schedule (err: ${error})`,
       );
       throw new InternalServerErrorException('Error occurred saving task');
-    }
-  }
-
-  private async invokeLambdaFunction(data: any) {
-    const deviceId = 123123;
-    const URL = `http://${process.env.CHROMECAST_SERVICE_HOST}/v1.0/chromecast/device/${deviceId}`;
-
-    try {
-      const response = await firstValueFrom(
-        this.httpService.post(URL, data, {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }),
-      );
-      this.logger.log('Response:', response.data);
-      return response.data;
-    } catch (error) {
-      this.logger.error('Error:', error.message);
-      throw error;
     }
   }
 
