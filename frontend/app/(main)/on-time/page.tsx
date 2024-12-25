@@ -5,6 +5,7 @@ import {
   getScheduleList,
   updateSchedule,
 } from "@/pages/api/schedule";
+import { Button, Textarea } from "@nextui-org/react";
 import { useEffect, useState } from "react";
 
 export default function OnTime() {
@@ -73,7 +74,6 @@ export default function OnTime() {
         "recurring",
         "on_time",
         `on_time_schedule_${hour}`,
-        `on_time_schedule_${hour}`,
         `현재 시각 ${hour}시 입니다.`,
         `0 ${hour} * * *`,
       );
@@ -94,10 +94,6 @@ export default function OnTime() {
     notifications.forEach((_, index) => {
       toggleNotification(index);
     });
-  };
-
-  const handleAllHoursSubmit = () => {
-    alert(`모든 시간 입력: ${allHoursText}`);
   };
 
   return (
@@ -205,24 +201,13 @@ export default function OnTime() {
         </div>
 
         <div className="mt-8">
-          <h2 className="text-lg font-semibold text-gray-700 mb-4">
-            정각이 되면 말할 문장
-          </h2>
-          <textarea
-            className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            rows={2}
-            value={allHoursText}
-            onChange={(e) => setAllHoursText(e.target.value)}
-            placeholder="여기에 텍스트를 입력하세요"
-          ></textarea>
-          <button
-            onClick={handleAllHoursSubmit}
-            className="mt-4 w-full bg-blue-600 text-white py-2 rounded-xl hover:bg-blue-600 transition duration-300"
-          >
-            설정
-          </button>
+          <Textarea
+            variant="flat"
+            className="col-span-12 md:col-span-6 mb-6 md:mb-0"
+            label="정각시 말할 문장"
+            placeholder="현재 시각 OO시 입니다"
+          />
         </div>
-
       </div>
     </div>
   );

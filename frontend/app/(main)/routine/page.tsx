@@ -3,40 +3,20 @@
 import CreateButton from "@/components/create-schedule";
 import ScheduleCard from "@/components/schedule-card";
 import { getScheduleList } from "@/pages/api/schedule";
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 export default function RoutinePage() {
-  const [data, setData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>("");
+  const queryId = "routine";
+  const { data, isLoading, isError } = useQuery({
+    queryKey: [queryId],
+    queryFn: () => getScheduleList("recurring", "routine"),
+  });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-
-        const scheduleList = await getScheduleList("recurring", "routine");
-
-        if (!scheduleList) {
-          throw new Error("failed to fetch data");
-        }
-        setData(scheduleList);
-      } catch (error: unknown) {
-        if(error instanceof Error) {
-          setError(error.message);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return <h1>Loading...</h1>;
   }
 
-  if (error) {
+  if (isError) {
     return <h1>Error</h1>;
   }
 
@@ -44,7 +24,7 @@ export default function RoutinePage() {
     <div>
       <div className="p-4">
         <h1 className="text-3xl font-bold mb-4">My routines</h1>
-        {data.length > 0 ? (
+        {data && data.length > 0 ? (
           <div
             className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3"
             style={{
@@ -54,13 +34,13 @@ export default function RoutinePage() {
             {data?.map((schedule: any) => (
               <ScheduleCard
                 key={schedule.rowId}
+                queryId={queryId}
                 id={schedule.rowId}
                 title={schedule.title}
                 description={schedule.description}
                 type={schedule.type}
                 interval={schedule.interval}
                 active={schedule.active}
-                setData={setData}
               />
             ))}
           </div>
@@ -74,9 +54,9 @@ export default function RoutinePage() {
       </div>
       <div>
         <CreateButton
+          queryId={queryId}
           title="New routine"
           scheduleType="recurring"
-          setData={setData}
         />
       </div>
     </div>

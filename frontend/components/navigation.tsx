@@ -1,29 +1,27 @@
 "use client";
 
-import { useNavigation } from "@/contexts/navigationContext";
 import Link from "next/link";
+import { useNavigation } from "@/contexts/navigationContext";
 import { usePathname } from "next/navigation";
-import { CiSettings } from "react-icons/ci";
-import { FaHome } from "react-icons/fa";
-import { GoTasklist } from "react-icons/go";
-import { MdEventAvailable } from "react-icons/md";
-import { PiClockCounterClockwise } from "react-icons/pi";
-import {
-  TbLayoutSidebarLeftCollapse,
-  TbLayoutSidebarRightCollapse,
-} from "react-icons/tb";
-import { TfiAlarmClock } from "react-icons/tfi";
+
+import HomeIcon from "@mui/icons-material/Home";
+import ScheduleIcon from "@mui/icons-material/Schedule";
+import EventIcon from "@mui/icons-material/Event";
+import AccessAlarmIcon from "@mui/icons-material/AccessAlarm";
+import PlaylistAddCheckIcon from "@mui/icons-material/PlaylistAddCheck";
+import SettingsIcon from "@mui/icons-material/Settings";
+import { Menu, MenuOpen } from "@mui/icons-material";
 
 export const Navigation = () => {
   const { isCollapsed, toggleCollapse } = useNavigation();
 
   const navItems = [
-    { label: "Home", path: "/", icon: <FaHome /> },
-    { label: "Routine", path: "/routine", icon: <PiClockCounterClockwise /> },
-    { label: "Event", path: "/event", icon: <MdEventAvailable /> },
-    { label: "On-Time", path: "/on-time", icon: <TfiAlarmClock /> },
-    { label: "Task (준비 중)", path: "/task", icon: <GoTasklist /> },
-    { label: "Setting (준비 중)", path: "/setting", icon: <CiSettings /> },
+    { label: "Home", path: "/", icon: <HomeIcon /> },
+    { label: "Routine", path: "/routine", icon: <ScheduleIcon /> },
+    { label: "Event", path: "/event", icon: <EventIcon /> },
+    { label: "On-Time", path: "/on-time", icon: <AccessAlarmIcon /> },
+    { label: "Task (준비 중)", path: "/task", icon: <PlaylistAddCheckIcon /> },
+    { label: "Setting (준비 중)", path: "/setting", icon: <SettingsIcon /> },
   ];
 
   const pathname = usePathname();
@@ -39,11 +37,7 @@ export const Navigation = () => {
             onClick={toggleCollapse}
             className="text-white text-2xl focus:outline-none"
           >
-            {isCollapsed ? (
-              <TbLayoutSidebarRightCollapse />
-            ) : (
-              <TbLayoutSidebarLeftCollapse />
-            )}
+            {isCollapsed ? <Menu /> : <MenuOpen />}
           </button>
         </div>
 
@@ -56,9 +50,7 @@ export const Navigation = () => {
                   pathname === item.path ? "bg-slate-700" : "hover:bg-slate-800"
                 }`}
               >
-                <span className="text-3xl">
-                  {item.icon}
-                </span>
+                <span className="text-3xl">{item.icon}</span>
                 {!isCollapsed && (
                   <span className="text-lg font-semibold text-gray-300">
                     {item.label}

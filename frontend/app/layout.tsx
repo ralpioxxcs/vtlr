@@ -7,6 +7,7 @@ import {
 } from "@/contexts/navigationContext";
 import { TanstackQueryProvider } from "@/contexts/tanstackQueryContext";
 import { Navigation } from "@/components/navigation";
+import { NextUIProvider } from "@nextui-org/react";
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const { isCollapsed } = useNavigation();
@@ -29,11 +30,13 @@ const RootLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <html lang="en">
       <body className="font-[Arial,sans-serif]">
-        <NavigationProvider>
-          <TanstackQueryProvider>
-            <Layout>{children}</Layout>
-          </TanstackQueryProvider>
-        </NavigationProvider>
+        <NextUIProvider>
+          <NavigationProvider>
+            <TanstackQueryProvider>
+              <Layout>{children}</Layout>
+            </TanstackQueryProvider>
+          </NavigationProvider>
+        </NextUIProvider>
       </body>
     </html>
   );

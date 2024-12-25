@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Modal from "./popup";
 import type { ScheduleList } from "Type";
+import { Button } from "@nextui-org/react";
 
 interface IButtonProps {
   queryId: string;
@@ -22,16 +23,18 @@ export default function CreateButton({
 
   return (
     <div className="p-4">
-      <button
+      <Button
+        size="lg"
+        radius="full"
+        className="fixed bottom-4 right-4  bg-gradient-to-tr from-indigo-500 to-indigo-900 text-white shadow-lg"
         type="button"
-        onClick={openModal}
-        className="fixed bottom-4 right-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-2xl shadow-lg transition-all duration-200"
+        onPress={openModal}
       >
         {title}
-      </button>
+      </Button>
       {isModalOpen && (
         <Modal onClose={closeModal} queryId={queryId} type={scheduleType}>
-          이벤트 생성하기
+          {scheduleType === "recurring" ? "루틴 생성하기" : "이벤트 생성하기"}
         </Modal>
       )}
     </div>

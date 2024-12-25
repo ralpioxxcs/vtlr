@@ -38,7 +38,6 @@ export async function createSchedule(
   type: string,
   category: string,
   title: string,
-  description: string,
   command: string,
   cronExp: string,
 ) {
@@ -47,7 +46,7 @@ export async function createSchedule(
   try {
     const data = {
       title,
-      description,
+      description: "description",
       category,
       type,
       interval: cronExp,
@@ -55,7 +54,7 @@ export async function createSchedule(
       param: {
         text: command,
         volume: 50,
-        language: 'ko'
+        language: "ko",
       },
     };
 
