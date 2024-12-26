@@ -17,7 +17,7 @@ export default function Home() {
 
   if (isLoading) {
     return (
-      <div className="fixed h-screen w-full flex flex-col justify-center items-center">
+      <div className="grow flex justify-center items-center">
         <Spinner size="lg" label="로딩 중.." />
       </div>
     );
@@ -28,7 +28,7 @@ export default function Home() {
   }
 
   return (
-    <div className="p-4">
+    <div className="grow p-4 flex flex-col">
       <h1 className="text-3xl font-bold mb-4">All schedule</h1>
       {data && data.length > 0 ? (
         <div
@@ -51,10 +51,8 @@ export default function Home() {
           ))}
         </div>
       ) : (
-        <div className="flex items-center justify-center h-screen bg-gray-100 text-gray-800">
-          <div className="text-2xl text-gray-600">
-            <p>스케줄이 없습니다</p>
-          </div>
+        <div className="grow flex justify-center items-center bg-gray-100 text-gray-800">
+          <p className="text-2xl text-gray-600">스케줄이 없습니다</p>
         </div>
       )}
     </div>

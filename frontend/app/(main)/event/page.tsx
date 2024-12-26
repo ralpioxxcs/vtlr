@@ -15,7 +15,7 @@ export default function EventPage() {
 
   if (isLoading) {
     return (
-      <div className="fixed h-screen w-full flex flex-col justify-center items-center">
+      <div className="grow flex justify-center items-center">
         <Spinner size="lg" label="로딩 중.." />
       </div>
     );
