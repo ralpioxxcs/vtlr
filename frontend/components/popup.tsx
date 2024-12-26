@@ -145,6 +145,10 @@ export default function Modal({
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"
       onClick={onClose}
     >
+      <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=false"
+      />
       <div
         className="bg-white p-6 rounded-lg shadow-xl min-w-[350px] flex flex-col"
         onClick={(e) => e.stopPropagation()}

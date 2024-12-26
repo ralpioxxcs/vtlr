@@ -18,7 +18,7 @@ export default function EventPage() {
       <div className="fixed h-screen w-full flex flex-col justify-center items-center">
         <Spinner size="lg" label="로딩 중.." />
       </div>
-    )
+    );
   }
 
   if (isError) {
@@ -35,15 +35,15 @@ export default function EventPage() {
             gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
           }}
         >
-          {data.map((schedule) => (
+          {data.map((schedule: any) => (
             <ScheduleCard
               key={schedule.rowId}
               queryId={queryId}
               id={schedule.rowId}
               title={schedule.title}
-              description={schedule.description}
               type={schedule.type}
               interval={schedule.interval}
+              command={schedule.tasks[0].payload.text}
               active={schedule.active}
             />
           ))}
