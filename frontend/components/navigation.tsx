@@ -27,38 +27,42 @@ export const Navigation = () => {
   const pathname = usePathname();
 
   return (
-    <div className="flex h-screen">
-      <nav
-        className={`${isCollapsed ? "w-12" : "w-64"}
-         bg-slate-800 text-white h-full fixed top-0 left-0 transition-all duration-300`}
-      >
-        <div className="flex items-center justify-between px-2 py-4">
-          <button
-            onClick={toggleCollapse}
-            className="text-white text-2xl focus:outline-none"
-          >
-            {isCollapsed ? <Menu /> : <MenuOpen />}
-          </button>
-        </div>
+    <nav
+      className={`${isCollapsed ? "w-12" : "w-64"}
+         bg-slate-800 text-white h-full fixed top-0 left-0 transition-all duration-300 overflow-hidden`}
+    >
+      <p className="px-2 py-4">
+        <button
+          type="button"
+          onClick={toggleCollapse}
+          className="px-1 text-white text-2xl focus:outline-none"
+        >
+          {isCollapsed ? <Menu /> : <MenuOpen />}
+        </button>
+      </p>
 
-        <ul className="mt-4 space-y-2">
-          {navItems.map((item) => (
-            <li key={item.path}>
-              <Link
-                href={item.path}
-                className={`flex items-center gap-4 px-2 py-2 ${
-                  pathname === item.path ? "bg-slate-600" : "hover:bg-slate-700"
-                }`}
+      <ul className="mt-4 space-y-2">
+        {navItems.map((item) => (
+          <li key={item.path}>
+            <Link
+              href={item.path}
+              className={`block px-2 py-2 whitespace-pre ${
+                pathname === item.path ? "bg-slate-600" : "hover:bg-slate-700"
+              }`}
+            >
+              <button
+                type="button"
+                className="px-1 flex gap-4 items-center h-7"
               >
-                <span>{item.icon}</span>
+                {item.icon}
                 {!isCollapsed && (
                   <span className="text-lg text-gray-300">{item.label}</span>
                 )}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
-    </div>
+              </button>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </nav>
   );
 };

@@ -26,9 +26,7 @@ export default function OnTime() {
 
       return hours;
     },
-    initialData: () => {
-      return Array(24).fill(false);
-    },
+    initialData: () => Array(24).fill(false),
   });
 
   const { mutate: handleToggle } = useMutation({
@@ -72,7 +70,7 @@ export default function OnTime() {
 
   if (isLoading) {
     return (
-      <div className="fixed h-screen w-full flex flex-col justify-center items-center">
+      <div className="grow flex justify-center items-center">
         <Spinner size="lg" label="로딩 중.." />
       </div>
     );
@@ -83,7 +81,7 @@ export default function OnTime() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+    <div className="grow flex justify-center items-center bg-gray-100">
       <div className="bg-white shadow-lg rounded-lg p-4 w-full max-w-lg">
         <h1 className="text-xl font-semibold text-gray-800 text-center">
           24시간 정각 알림
