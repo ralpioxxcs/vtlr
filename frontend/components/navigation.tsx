@@ -30,7 +30,7 @@ export const Navigation = () => {
     <div className="flex h-screen">
       <nav
         className={`${isCollapsed ? "w-16" : "w-64"}
-         bg-slate-900 text-white h-full fixed top-0 left-0 transition-all duration-300 z-4`}
+         bg-slate-800 text-white h-full fixed top-0 left-0 transition-all duration-300 z-4`}
       >
         <div className="flex items-center justify-between p-4">
           <button
@@ -46,13 +46,13 @@ export const Navigation = () => {
             <li key={item.path}>
               <Link
                 href={item.path}
-                className={`flex items-center gap-4 px-4 py-2 rounded ${
-                  pathname === item.path ? "bg-slate-700" : "hover:bg-slate-800"
+                className={`flex items-center gap-4 px-4 py-2 ${
+                  pathname === item.path ? "bg-slate-600" : "hover:bg-slate-700"
                 }`}
               >
-                <span className="text-3xl">{item.icon}</span>
+                <span>{item.icon}</span>
                 {!isCollapsed && (
-                  <span className="text-lg font-semibold text-gray-300">
+                  <span className="text-lg text-gray-300">
                     {item.label}
                   </span>
                 )}

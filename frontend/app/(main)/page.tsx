@@ -9,7 +9,10 @@ export default function Home() {
   const queryId = "main";
   const { data, isLoading, isError } = useQuery({
     queryKey: [queryId],
-    queryFn: () => getScheduleList(),
+    queryFn: async () => {
+      const response = await getScheduleList();
+      return response.filter((item) => item.category !== "on_time");
+    },
   });
 
   if (isLoading) {
@@ -17,7 +20,7 @@ export default function Home() {
       <div className="fixed h-screen w-full flex flex-col justify-center items-center">
         <Spinner size="lg" label="로딩 중.." />
       </div>
-    )
+    );
   }
 
   if (isError) {
@@ -40,9 +43,9 @@ export default function Home() {
               queryId={queryId}
               id={schedule.rowId}
               title={schedule.title}
-              description={schedule.description}
               type={schedule.type}
               interval={schedule.interval}
+              command={schedule.tasks[0].payload.text} // FIXME:
               active={schedule.active}
             />
           ))}
