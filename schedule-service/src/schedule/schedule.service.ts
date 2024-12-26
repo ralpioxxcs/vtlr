@@ -101,7 +101,7 @@ export class ScheduleService implements OnModuleInit, OnModuleDestroy {
       const rows = await this.scheduleRepository.find({
         where: {
           type: type as ScheduleType,
-          category: type as ScheduleCategory,
+          category: category as ScheduleCategory,
         },
         relations: ['tasks'],
       });

@@ -43,7 +43,7 @@ export default function EventPage() {
               title={schedule.title}
               type={schedule.type}
               interval={schedule.interval}
-              command={schedule.tasks[0].payload.text}
+              command={schedule.tasks[0].text}
               active={schedule.active}
             />
           ))}

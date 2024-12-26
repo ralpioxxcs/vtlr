@@ -14,18 +14,9 @@ declare module "Type" {
       updatedAt: string;
       createdAt: string;
       status: "pending" | "completed";
-      payload: {
-        rowId: string;
-        updatedAt: string;
-        createdAt: string;
-        status: string;
-        payload: {
-          text: string;
-          volume: number;
-        };
-        result: any;
-        attemps: number;
-      };
+      text: string;
+      volume: number;
+      language: string;
       result: any;
       attemps: number;
     }[];

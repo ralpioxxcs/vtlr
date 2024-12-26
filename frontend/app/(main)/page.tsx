@@ -45,7 +45,7 @@ export default function Home() {
               title={schedule.title}
               type={schedule.type}
               interval={schedule.interval}
-              command={schedule.tasks[0].payload.text} // FIXME:
+              command={schedule.tasks[0].text} // FIXME:
               active={schedule.active}
             />
           ))}
