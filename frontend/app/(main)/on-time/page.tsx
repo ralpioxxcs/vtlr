@@ -5,96 +5,82 @@ import {
   getScheduleList,
   updateSchedule,
 } from "@/pages/api/schedule";
-import { Button, Textarea } from "@nextui-org/react";
-import { useEffect, useState } from "react";
+import { Spinner, Textarea } from "@nextui-org/react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 export default function OnTime() {
-  const [notifications, setNotifications] = useState(
-    Array.from({ length: 24 }, () => false),
-  );
+  const queryKey = "on_time";
 
-  const [allHoursText, setAllHoursText] = useState("");
-  const [selectAll, setSelectAll] = useState(false);
+  const { data, isLoading, isError } = useQuery({
+    queryKey: [queryKey],
+    queryFn: async () => {
+      const response = await getScheduleList("recurring", "on_time");
 
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      try {
-        const onTimeScheduleList = await getScheduleList(
+      const hours = Array(24).fill(false);
+
+      response.forEach((item) => {
+        const hour = parseInt(item.interval.split(" ")[1], 10);
+        const isActive = item.active;
+        hours[hour] = isActive;
+      });
+
+      return hours;
+    },
+    initialData: () => {
+      return Array(24).fill(false);
+    },
+  });
+
+  const { mutate: handleToggle } = useMutation({
+    mutationFn: async (hour: number) => {
+      data[hour] = !data[hour];
+
+      const onTimeScheduleList = await getScheduleList("recurring", "on_time");
+      const hourList: { active: boolean; rowId: string }[] = Array.from(
+        { length: 24 },
+        () => ({
+          active: false,
+          rowId: "",
+        }),
+      );
+
+      for (const schedule of onTimeScheduleList) {
+        const hour = schedule.interval.split(" ")[1];
+        const rowId = schedule.rowId;
+        const active = schedule.active;
+        hourList[+hour] = {
+          active,
+          rowId,
+        };
+      }
+
+      if (!hourList[hour].active) {
+        await createSchedule(
           "recurring",
           "on_time",
+          `on_time_schedule_${hour}`,
+          `현재 시각 ${hour}시 입니다.`,
+          `0 ${hour} * * *`,
         );
-
-        onTimeScheduleList.forEach(async (schedule) => {
-          const hour = schedule.interval.split(" ")[1];
-          const active = schedule.active;
-          setNotifications((prev) => {
-            const updated = [...prev];
-            updated[hour] = active;
-            return updated;
-          });
+      } else {
+        await updateSchedule(hourList[hour].rowId, {
+          active: !hourList[hour].active,
         });
-      } catch (error) {
-        console.error(error);
       }
-    };
-    fetchInitialData();
-  }, []);
+    },
+  });
 
-  const toggleNotification = (hour: number) => {
-    setNotifications((prev) => {
-      const updated = [...prev];
-      updated[hour] = !updated[hour];
-      return updated;
-    });
-    syncDatas(hour);
-  };
-
-  const syncDatas = async (hour: number) => {
-    const onTimeScheduleList = await getScheduleList("recurring", "on_time");
-    const hourList: { active: boolean; rowId: string }[] = Array.from(
-      { length: 24 },
-      () => ({
-        active: false,
-        rowId: "",
-      }),
+  if (isLoading) {
+    return (
+      <div className="fixed h-screen w-full flex flex-col justify-center items-center">
+        <Spinner size="lg" label="로딩 중.." />
+      </div>
     );
+  }
 
-    for (const schedule of onTimeScheduleList) {
-      const hour = schedule.interval.split(" ")[1];
-      const rowId = schedule.rowId;
-      const active = schedule.active;
-      hourList[hour] = {
-        active,
-        rowId,
-      };
-    }
-
-    if (!hourList[hour].active) {
-      await createSchedule(
-        "recurring",
-        "on_time",
-        `on_time_schedule_${hour}`,
-        `현재 시각 ${hour}시 입니다.`,
-        `0 ${hour} * * *`,
-      );
-    } else {
-      await updateSchedule(hourList[hour].rowId, {
-        active: !hourList[hour].active,
-      });
-    }
-  };
-
-  const toggleSelectAll = () => {
-    setNotifications((prev) => {
-      const newValue = !selectAll;
-      setSelectAll(newValue);
-      return prev.map(() => newValue);
-    });
-
-    notifications.forEach((_, index) => {
-      toggleNotification(index);
-    });
-  };
+  if (isError) {
+    return <h1>Error</h1>;
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -106,42 +92,12 @@ export default function OnTime() {
           각 시간별 알림을 켜고 끌 수 있습니다.
         </p>
 
-        {/*
-        <div className="mt-6">
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={selectAll}
-              onChange={toggleSelectAll}
-              className="sr-only"
-            />
-            <div
-              className={`w-8 h-5 bg-gray-300 rounded-full shadow-inner transition-colors duration-300 ${
-                selectAll || notifications.every((item) => item)
-                  ? "bg-rose-500"
-                  : "bg-gray-300"
-              }`}
-            ></div>
-            <div
-              className={`absolute left-1 top-1 w-3 h-3 bg-white rounded-full shadow-md transform transition-transform duration-300 ${
-                selectAll || notifications.every((item) => item)
-                  ? "translate-x-3.5"
-                  : "translate-x-0"
-              }`}
-            ></div>
-          </label>
-          <span className="ml-4 text-sm font-medium text-gray-700">
-            전체 설정
-          </span>
-        </div>
-        */}
-
         <div className="mt-8">
           <h2 className="text-xl text-center font-semibold text-gray-700 mb-4">
             오전
           </h2>
           <div className="grid grid-cols-3 gap-4">
-            {notifications.slice(0, 12).map((isEnabled, hour) => (
+            {data.slice(0, 12).map((isEnabled, hour) => (
               <div key={hour} className="text-center">
                 <span className="block text-sm font-medium text-gray-700">
                   {hour}시
@@ -150,7 +106,7 @@ export default function OnTime() {
                   <input
                     type="checkbox"
                     checked={isEnabled}
-                    onChange={() => toggleNotification(hour)}
+                    onChange={() => handleToggle(hour)}
                     className="sr-only"
                   />
                   <div
@@ -172,7 +128,7 @@ export default function OnTime() {
             오후
           </h2>
           <div className="grid grid-cols-3 gap-4">
-            {notifications.slice(12).map((isEnabled, hour) => (
+            {data.slice(12).map((isEnabled, hour) => (
               <div key={hour + 12} className="text-center">
                 <span className="block text-sm font-medium text-gray-700">
                   {hour + 12}시
@@ -181,7 +137,7 @@ export default function OnTime() {
                   <input
                     type="checkbox"
                     checked={isEnabled}
-                    onChange={() => toggleNotification(hour + 12)}
+                    onChange={() => handleToggle(hour + 12)}
                     className="sr-only"
                   />
                   <div

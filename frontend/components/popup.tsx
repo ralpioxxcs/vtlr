@@ -1,7 +1,7 @@
 "use client";
 
 import { createSchedule } from "@/pages/api/schedule";
-import { getLocalTimeZone, now, ZonedDateTime } from "@internationalized/date";
+import { getLocalTimeZone, now } from "@internationalized/date";
 import { DatePicker } from "@nextui-org/date-picker";
 import {
   Button,

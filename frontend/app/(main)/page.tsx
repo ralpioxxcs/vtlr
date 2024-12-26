@@ -2,6 +2,7 @@
 
 import ScheduleCard from "@/components/schedule-card";
 import { getScheduleList } from "@/pages/api/schedule";
+import { Spinner } from "@nextui-org/react";
 import { useQuery } from "@tanstack/react-query";
 
 export default function Home() {
@@ -12,7 +13,11 @@ export default function Home() {
   });
 
   if (isLoading) {
-    return <h1>Loading...</h1>;
+    return (
+      <div className="fixed h-screen w-full flex flex-col justify-center items-center">
+        <Spinner size="lg" label="로딩 중.." />
+      </div>
+    )
   }
 
   if (isError) {
