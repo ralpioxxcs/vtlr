@@ -1,5 +1,6 @@
 import {
   Body,
+  ClassSerializerInterceptor,
   Controller,
   Delete,
   Get,
@@ -7,12 +8,14 @@ import {
   Patch,
   Post,
   Query,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ScheduleService } from './schedule.service';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 
 @Controller('schedule')
+@UseInterceptors(ClassSerializerInterceptor)
 export class ScheduleController {
   constructor(private readonly scheduleService: ScheduleService) {}
 
@@ -29,15 +32,8 @@ export class ScheduleController {
     return this.scheduleService.createSchedule(createSchedule);
   }
 
-  @Delete()
-  async deleteAllSchedule() {
-    return this.scheduleService.deleteAllSchedule();
-  }
-
   @Get('/:scheduleId')
-  async getOneSchedule(
-    @Param('scheduleId') scheduleId: string,
-  ) {
+  async getOneSchedule(@Param('scheduleId') scheduleId: string) {
     return this.scheduleService.findScheduleById(scheduleId);
   }
 

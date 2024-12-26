@@ -32,7 +32,6 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
-  //app.useGlobalFilters(new HttpExceptionFilter());
 
   await app.listen(process.env.PORT ?? 4000, '0.0.0.0');
 }

@@ -51,9 +51,9 @@ export class CronProcessor extends WorkerHost {
 
       try {
         const response = await this.requestChromecast({
-          text: item.payload.text,
-          volume: item.payload.volume / 100 || 0.5,
-          language: item.payload.language || 'ko',
+          text: item.text,
+          volume: item.volume / 100 || 0.5,
+          language: item.language || 'ko',
         });
         this.logger.log(`response: ${response}`);
 

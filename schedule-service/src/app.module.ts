@@ -32,7 +32,6 @@ import { TaskModel } from './task/entites/task.entity';
       synchronize: true,
     }),
     ScheduleModule,
-    TaskModule,
   ],
   controllers: [AppController],
   providers: [AppService],

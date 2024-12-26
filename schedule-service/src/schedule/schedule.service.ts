@@ -1,41 +1,28 @@
 import {
-  BadRequestException,
   Injectable,
-  InternalServerErrorException,
   Logger,
   NotFoundException,
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
-import { Cron, SchedulerRegistry } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ScheduleModel } from './entities/schedule.entity';
 import { DataSource, QueryRunner, Repository } from 'typeorm';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
-import { CronJob } from 'cron';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
-import { TaskModel } from 'src/task/entites/task.entity';
-import { TaskStatus } from 'src/task/enum/task.enum';
 import * as cronParser from 'cron-parser';
-import { ScheduleType } from './enum/schedule.enum';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
+import { TaskService } from 'src/task/task.service';
+import { ScheduleCategory, ScheduleType } from './enum/schedule.enum';
 
 @Injectable()
 export class ScheduleService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(ScheduleService.name);
 
   constructor(
+    private readonly taskService: TaskService,
+    private readonly dataSource: DataSource,
     @InjectRepository(ScheduleModel)
     private readonly scheduleRepository: Repository<ScheduleModel>,
-    @InjectRepository(TaskModel)
-    private readonly taskRepository: Repository<TaskModel>,
-    private schedulerRegistry: SchedulerRegistry,
-    private readonly dataSource: DataSource,
-    private readonly httpService: HttpService,
-    @InjectQueue('cronQueue') private readonly cronQueue: Queue,
   ) {}
 
   async onModuleInit() {
@@ -50,9 +37,11 @@ export class ScheduleService implements OnModuleInit, OnModuleDestroy {
         relations: ['tasks'],
       });
 
-      // configure schedules only meet below conditions
-      //  * schedule type is "recurring"
-      //  * schedule type is "one_time" but, not started
+      //
+      // 아래 조건을 만족하는 스케줄을 초기화 한다
+      //  * 스케줄 타입이 "recurring"
+      //  * 스케줄 타입이 "one_time"이면서, 아직 실행 전
+      //
       const initEntities = entities.filter((entity) => {
         if (entity.type === ScheduleType.recurring) {
           this.logger.debug(`recurring schedule (id: ${entity.rowId})`);
@@ -71,10 +60,17 @@ export class ScheduleService implements OnModuleInit, OnModuleDestroy {
       });
 
       for (const entity of initEntities) {
-        this.logger.debug(`schedule: ${entity.title}`);
-
-        await this.registerSchedule(entity, entity.tasks[0]);
-        await this.delay(100);
+        await this.taskService.createTask(
+          entity,
+          entity.tasks.map((task) => {
+            return {
+              text: task.text,
+              volume: task.volume,
+              language: task.language,
+            };
+          }),
+        );
+        await this.delay(100); // CronJob Id생성시 타임스탬프 중복 방지를 위한 딜레이
       }
 
       await qr.commitTransaction();
@@ -90,7 +86,7 @@ export class ScheduleService implements OnModuleInit, OnModuleDestroy {
   }
 
   onModuleDestroy() {
-    this.logger.debug('cleanup');
+    this.logger.debug('Clean-up');
   }
 
   getRepository(qr?: QueryRunner) {
@@ -99,29 +95,13 @@ export class ScheduleService implements OnModuleInit, OnModuleDestroy {
       : this.scheduleRepository;
   }
 
-  async registerSchedule(schedule: ScheduleModel, param: any) {
-    // Create a new tasks according to schedule
-    const newTask = await this.createNewTask(schedule, param);
-
-    let priority = 0;
-    if (schedule.category === 'on_time') {
-      priority = 0;
-    } else if (schedule.category === 'event') {
-      priority = 1;
-    } else if (schedule.category === 'routine') {
-      priority = 2;
-    }
-
-    return await this.createJob(schedule.interval, newTask, priority);
-  }
-
   async findAllSchedules(type?: string, category?: string) {
     this.logger.debug('find all schedules');
     try {
       const rows = await this.scheduleRepository.find({
         where: {
           type: type as ScheduleType,
-          category,
+          category: type as ScheduleCategory,
         },
         relations: ['tasks'],
       });
@@ -174,94 +154,50 @@ export class ScheduleService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private async createJob(cronExp: string, task: TaskModel, priority?: number) {
-    const serviceName = 'vtlr-service';
-    const featureName = 'job';
-    const uniqueId = new Date().getTime();
-    const cronJobName = `${serviceName}:${featureName}:${uniqueId}`;
-
-    const job = await this.cronQueue.add(
-      cronJobName,
-      {
-        task,
-      },
-      {
-        priority: priority || 0,
-        repeat: { pattern: cronExp, tz: 'Asia/Seoul' },
-      },
-    );
-    this.logger.log(`job created: ${JSON.stringify(job.toJSON(), null, 2)}`);
-    //this.logger.log(`new job started (jobId: ${cronJobName})`);
-  }
-
   async createSchedule(scheduleDto: CreateScheduleDto) {
-    // if (
-    //   scheduleDto.type === ScheduleType.oneTime &&
-    //   this.isCronExpired(scheduleDto.interval)
-    // ) {
-    //   throw new BadRequestException(
-    //     'interval should has future date when one_time type of schedule',
-    //   );
-    // }
+    try {
+      const entity = this.scheduleRepository.create({
+        ...scheduleDto,
+      });
+      const newSchedule = await this.scheduleRepository.save(entity);
 
-    // Create a schedule
-    const schedule = this.scheduleRepository.create({
-      ...scheduleDto,
-    });
-    const newSchedule = await this.scheduleRepository.save(schedule);
+      const tasks = await this.taskService.createTask(
+        newSchedule,
+        scheduleDto.task,
+      );
+      newSchedule.tasks = tasks;
 
-    const newJob = await this.registerSchedule(newSchedule, scheduleDto.param);
-
-    return { newSchedule, newJob };
+      return newSchedule;
+    } catch (error) {
+      this.logger.error(`Error occurred creating schedule (err: ${error})`);
+      throw error;
+    }
   }
 
-  async updateSchedule(id: string, scheduleDto: UpdateScheduleDto) {
+  async updateSchedule(
+    id: string,
+    scheduleDto: UpdateScheduleDto,
+  ): Promise<ScheduleModel> {
     try {
-      const schedule = await this.scheduleRepository.findOne({
+      const scheduleEntity = await this.scheduleRepository.findOne({
         where: {
           rowId: id,
         },
       });
 
-      const task = await this.taskRepository.findOne({
-        where: {
-          schedule: {
-            rowId: id,
-          },
-        },
-        relations: ['schedule'],
-      });
-
-      if (!schedule) {
+      if (!scheduleEntity) {
         throw new NotFoundException('not found schedule corresponding id');
-      }
-      if (!task) {
-        throw new NotFoundException('not found tasks corresponding id');
       }
 
       const mergedSchedule = this.scheduleRepository.merge(
-        schedule,
+        scheduleEntity,
         scheduleDto,
       );
-      const updated = await this.scheduleRepository.save(mergedSchedule);
+      await this.scheduleRepository.save(mergedSchedule);
 
-      const mergedTask = this.taskRepository.merge(task, {
-        payload: scheduleDto.param,
-      });
-      await this.taskRepository.save(mergedTask);
-
-      return updated;
+      return scheduleEntity;
     } catch (error) {
       this.logger.error(`Error occurred update schedule (err: ${error})`);
-      throw error;
-    }
-  }
-
-  async deleteAllSchedule() {
-    try {
-      return await this.scheduleRepository.clear();
-    } catch (error) {
-      this.logger.error(`Error occurred on deleting rows (err: ${error})`);
       throw error;
     }
   }
@@ -281,27 +217,6 @@ export class ScheduleService implements OnModuleInit, OnModuleDestroy {
     } catch (error) {
       this.logger.error(`Error occurred deleting schedule (err: ${error})`);
       throw error;
-    }
-  }
-
-  private async createNewTask(schedule: ScheduleModel, param: any) {
-    try {
-      const newTask = this.taskRepository.create({
-        status: TaskStatus.pending,
-        attemps: 0,
-        payload: param,
-        result: {},
-      });
-      newTask.schedule = schedule;
-
-      const entity = await this.taskRepository.save(newTask);
-
-      return entity;
-    } catch (error) {
-      this.logger.error(
-        `Error occurred saving task according schedule (err: ${error})`,
-      );
-      throw new InternalServerErrorException('Error occurred saving task');
     }
   }
 

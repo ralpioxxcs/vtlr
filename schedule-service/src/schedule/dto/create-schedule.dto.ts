@@ -1,15 +1,17 @@
 import { PickType } from '@nestjs/mapped-types';
 import { ScheduleModel } from '../entities/schedule.entity';
-import { ScheduleType } from '../enum/schedule.enum';
+import { ScheduleCategory, ScheduleType } from '../enum/schedule.enum';
 import {
-    IsBoolean,
+  IsBoolean,
   IsEnum,
   IsNotEmpty,
-  IsObject,
   IsOptional,
   IsString,
+  ValidateNested,
 } from 'class-validator';
 import { IsCronExpression } from 'src/common/decorators/is-cron.decorator';
+import { Type } from 'class-transformer';
+import { CreateTaskDto } from 'src/task/dto/task.dto';
 
 export class CreateScheduleDto extends PickType(ScheduleModel, [
   'title',
@@ -17,7 +19,7 @@ export class CreateScheduleDto extends PickType(ScheduleModel, [
   'type',
   'category',
   'interval',
-  'active'
+  'active',
 ]) {
   @IsString()
   @IsNotEmpty()
@@ -33,7 +35,7 @@ export class CreateScheduleDto extends PickType(ScheduleModel, [
 
   @IsString()
   @IsOptional()
-  category: string;
+  category: ScheduleCategory;
 
   @IsString()
   @IsNotEmpty()
@@ -44,7 +46,7 @@ export class CreateScheduleDto extends PickType(ScheduleModel, [
   @IsNotEmpty()
   active: boolean;
 
-  @IsObject()
-  @IsNotEmpty()
-  param: any;
+  @ValidateNested({ each: true })
+  @Type(() => CreateTaskDto)
+  task: CreateTaskDto[];
 }

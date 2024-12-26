@@ -1,6 +1,6 @@
 import { BaseModel } from 'src/common/entities/base.entity';
 import { Column, Entity, OneToMany } from 'typeorm';
-import { ScheduleType } from '../enum/schedule.enum';
+import { ScheduleCategory, ScheduleType } from '../enum/schedule.enum';
 import { TaskModel } from 'src/task/entites/task.entity';
 
 @Entity({
@@ -13,7 +13,7 @@ export class ScheduleModel extends BaseModel {
     length: 64,
   })
   title: string;
-
+  
   @Column({
     type: 'text',
     nullable: true,
@@ -28,10 +28,10 @@ export class ScheduleModel extends BaseModel {
 
   @Column({
     type: 'varchar',
-    length: 32,
+    length: 64,
     nullable: true,
   })
-  category: string | null;
+  category: ScheduleCategory | null;
 
   @Column({
     type: 'varchar',

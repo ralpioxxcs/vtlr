@@ -1,4 +1,4 @@
-import { Schedule } from 'aws-sdk/clients/pinpoint';
+import { Exclude } from 'class-transformer';
 import { BaseModel } from 'src/common/entities/base.entity';
 import { ScheduleModel } from 'src/schedule/entities/schedule.entity';
 import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
@@ -10,21 +10,42 @@ import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 export class TaskModel extends BaseModel {
   @Column({
     type: 'varchar',
+    length: 64,
+  })
+  title: string;
+
+  @Column({
+    type: 'text',
+  })
+  description: string;
+
+  @Column({
+    type: 'varchar',
     length: 16,
   })
   status: string;
 
   @Column({
-    type: 'json',
-    nullable: true,
+    type: 'text',
   })
-  payload: any;
+  text: string;
+
+  @Column({
+    type: 'integer',
+  })
+  volume: number;
+
+  @Column({
+    type: 'varchar',
+    length: 16,
+  })
+  language: string;
 
   @Column({
     type: 'json',
     nullable: true,
   })
-  result: any;
+  result: object | null;
 
   @Column({
     type: 'integer',
@@ -34,5 +55,10 @@ export class TaskModel extends BaseModel {
   @ManyToOne(() => ScheduleModel, (schedule) => schedule.tasks, {
     onDelete: 'CASCADE',
   })
+  @JoinColumn({ name: 'scheduleId' })
   schedule: ScheduleModel;
+
+  @Exclude()
+  @Column()
+  scheduleId: string;
 }

@@ -1,9 +1,15 @@
-import { PickType } from '@nestjs/mapped-types';
-import { TaskModel } from '../entites/task.entity';
-import { IsNotEmpty, IsObject } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
-export class CreateTaskDto extends PickType(TaskModel, ['payload']) {
+export class CreateTaskDto {
+  @IsString()
   @IsNotEmpty()
-  @IsObject()
-  payload: any;
+  text: string;
+
+  @IsNumber()
+  @IsNotEmpty()
+  volume: number;
+
+  @IsString()
+  @IsNotEmpty()
+  language: string;
 }
