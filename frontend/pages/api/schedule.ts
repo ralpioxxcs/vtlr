@@ -51,11 +51,13 @@ export async function createSchedule(
       type,
       interval: cronExp,
       active: true,
-      param: {
-        text: command,
-        volume: 50,
-        language: "ko",
-      },
+      task: [
+        {
+          text: command,
+          volume: 50,
+          language: "ko",
+        },
+      ],
     };
 
     const response = await fetch(url, {
