@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Modal from "./popup";
 import type { ScheduleList } from "Type";
 import { Button } from "@nextui-org/react";

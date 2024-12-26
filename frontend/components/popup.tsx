@@ -14,7 +14,7 @@ import {
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ScheduleList } from "Type";
 import type { ReactNode } from "react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 interface ModalProps {
   onClose: () => void;
@@ -184,9 +184,10 @@ export default function Modal({
               <div>
                 <DatePicker
                   isRequired
-                  label="시작 시간"
+                  label="시작 날짜 및 시간"
                   labelPlacement="outside"
                   name="datetime"
+                  hourCycle={24}
                   defaultValue={now(getLocalTimeZone())}
                   hideTimeZone
                   showMonthAndYearPickers
@@ -207,8 +208,8 @@ export default function Modal({
                   label="시작 시간"
                   labelPlacement="outside"
                   name="datetime"
+                  hourCycle={24}
                   defaultValue={now(getLocalTimeZone())}
-                  hideTimeZone
                   variant="flat"
                 />
                 <CheckboxGroup

@@ -103,7 +103,7 @@ export default function ScheduleCard({
   });
 
   return (
-    <div className="relative w-full h-full mx-auto my-2 bg-white shadow-md rounded-lg border border-gray-200 overflow-hidden">
+    <div className="relative w-full h-full mx-auto my-2 bg-white shadow-lg rounded-lg border border-slate-400 overflow-hidden">
       <button
         type="button"
         onClick={() => handleDelete()}
