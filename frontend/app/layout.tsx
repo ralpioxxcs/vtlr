@@ -13,7 +13,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const { isCollapsed } = useNavigation();
 
   return (
-    <div className="flex h-screen">
+    <div className="flex min-h-dvh">
       <Navigation />
       <main
         className={`flex-1 flex flex-col transition-all duration-300 ${
