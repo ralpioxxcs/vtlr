@@ -27,7 +27,7 @@ export default function EventPage() {
 
   return (
     <div className="grow p-4 flex flex-col">
-      <h1 className="text-3xl font-bold mb-4">My events</h1>
+      <h1 className="text-xl font-semibold mb-4 text-center">내 이벤트</h1>
       {data && data.length > 0 ? (
         <div
           className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3"
@@ -58,7 +58,7 @@ export default function EventPage() {
       <div>
         <CreateButton
           queryId={queryId}
-          title="New event"
+          title="새로운 이벤트"
           scheduleType="one_time"
         />
       </div>

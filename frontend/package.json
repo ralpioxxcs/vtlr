@@ -14,6 +14,7 @@
     "@internationalized/date": "3.6.0",
     "@mui/icons-material": "^6.3.0",
     "@mui/material": "^6.3.0",
+    "@nextui-org/card": "^2.2.8",
     "@nextui-org/checkbox": "^2.3.7",
     "@nextui-org/date-picker": "^2.3.8",
     "@nextui-org/react": "^2.6.10",

@@ -134,7 +134,7 @@ export default function ScheduleCard({
 
           {
             <div className="flex justify-between items-center mt-2">
-              <span className="text-sm text-gray-500">다음 실행될 시간:</span>
+              <span className="text-sm text-gray-500 w-28">다음 실행될 시간:</span>
               <span className="text-sm font-medium text-gray-700">
                 {nextExecDate}
               </span>
@@ -143,8 +143,8 @@ export default function ScheduleCard({
 
           {type === "recurring" && (
             <div className="flex justify-between items-center mt-2">
-              <span className="text-sm text-gray-500">반복 주기:</span>
-              <span className="text-sm font-medium text-gray-700">{cron}</span>
+              <span className="text-sm text-gray-500 w-24">반복 주기:</span>
+              <span className="text-sm font-medium text-gray-700 text-right">{cron}</span>
             </div>
           )}
 
@@ -158,7 +158,7 @@ export default function ScheduleCard({
                 id="toggle"
                 onClick={() => handleToggle()}
                 className={`w-8 h-4 flex items-center rounded-full cursor-pointer p-1 transition-colors ${
-                  active ? "bg-green-500" : "bg-gray-300"
+                  active ? "bg-green-700" : "bg-gray-300"
                 }`}
               >
                 <span

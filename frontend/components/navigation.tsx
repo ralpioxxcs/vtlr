@@ -11,52 +11,65 @@ import AccessAlarmIcon from "@mui/icons-material/AccessAlarm";
 import PlaylistAddCheckIcon from "@mui/icons-material/PlaylistAddCheck";
 import SettingsIcon from "@mui/icons-material/Settings";
 import { Menu, MenuOpen } from "@mui/icons-material";
+import { Button } from "@nextui-org/react";
 
 export const Navigation = () => {
   const { isCollapsed, toggleCollapse } = useNavigation();
 
   const navItems = [
-    { label: "Home", path: "/", icon: <HomeIcon /> },
-    { label: "Routine", path: "/routine", icon: <ScheduleIcon /> },
-    { label: "Event", path: "/event", icon: <EventIcon /> },
-    { label: "On-Time", path: "/on-time", icon: <AccessAlarmIcon /> },
-    { label: "Task (준비 중)", path: "/task", icon: <PlaylistAddCheckIcon /> },
-    { label: "Setting (준비 중)", path: "/setting", icon: <SettingsIcon /> },
+    { label: "홈", path: "/", icon: <HomeIcon /> },
+    { label: "루틴", path: "/routine", icon: <ScheduleIcon /> },
+    { label: "이벤트", path: "/event", icon: <EventIcon /> },
+    { label: "정각알림", path: "/on-time", icon: <AccessAlarmIcon /> },
+    { label: "할일", path: "/task", icon: <PlaylistAddCheckIcon /> },
+    { label: "설정", path: "/setting", icon: <SettingsIcon /> },
   ];
 
   const pathname = usePathname();
 
   return (
     <nav
-      className={`${isCollapsed ? "w-12" : "w-64"}
-         bg-slate-800 text-white h-full fixed top-0 left-0 transition-all duration-300 overflow-hidden`}
+      className={`${isCollapsed ? "w-14" : "w-64"}
+         bg-slate-800 text-white h-full fixed top-0 left-0 overflow-hidden transition-all duration-100`}
     >
       <p className="px-2 py-4">
-        <button
-          type="button"
-          onClick={toggleCollapse}
-          className="px-1 text-white text-2xl focus:outline-none"
+        <Button
+          variant="light"
+          isIconOnly
+          onPress={toggleCollapse}
+          className="text-white text-xl focus:outline-none"
         >
-          {isCollapsed ? <Menu /> : <MenuOpen />}
-        </button>
+          <Menu />
+        </Button>
       </p>
 
-      <ul className="mt-4 space-y-2">
+      <ul className="space-y-0">
         {navItems.map((item) => (
           <li key={item.path}>
             <Link
               href={item.path}
-              className={`block px-2 py-2 whitespace-pre ${
+              className={`block w-full rounded-xl ${
                 pathname === item.path ? "bg-slate-600" : "hover:bg-slate-700"
               }`}
             >
-              <button
-                type="button"
-                className="px-1 flex gap-4 items-center h-7"
-              >
+                     <button
+              type="button"
+              className={`flex w-full ${
+                isCollapsed
+                  ? "flex-col items-center justify-center h-16"
+                  : "items-center gap-4 h-12 px-4"
+              }`}
+            >
                 {item.icon}
+                {isCollapsed && (
+                  <span className="text-xs text-gray-400 mt-1">
+                    {item.label}
+                  </span>
+                )}
                 {!isCollapsed && (
-                  <span className="text-lg text-gray-300">{item.label}</span>
+                  <span className="text-sm text-gray-300 mt-1">
+                    {item.label}
+                  </span>
                 )}
               </button>
             </Link>

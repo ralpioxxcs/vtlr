@@ -16,8 +16,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     <div className="flex min-h-dvh">
       <Navigation />
       <main
-        className={`flex-1 flex flex-col transition-all duration-300 ${
-          isCollapsed ? "ml-12" : "ml-64"
+        className={`flex-1 flex flex-col transition-all duration-100 ${
+          isCollapsed ? "ml-14" : "ml-64"
         }`}
       >
         {children}

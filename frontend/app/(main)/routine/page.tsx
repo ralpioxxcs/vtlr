@@ -27,7 +27,7 @@ export default function RoutinePage() {
 
   return (
     <div className="grow p-4 flex flex-col">
-      <h1 className="text-3xl font-bold mb-4">My routines</h1>
+      <h1 className="text-xl font-semibold mb-4 text-center">내 루틴</h1>
       {data && data.length > 0 ? (
         <div
           className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3"
@@ -57,7 +57,7 @@ export default function RoutinePage() {
       )}
       <CreateButton
         queryId={queryId}
-        title="New routine"
+        title="새로운 루틴"
         scheduleType="recurring"
       />
     </div>

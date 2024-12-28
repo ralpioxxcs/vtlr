@@ -29,7 +29,7 @@ export default function Home() {
 
   return (
     <div className="grow p-4 flex flex-col">
-      <h1 className="text-3xl font-bold mb-4">All schedule</h1>
+      <h1 className="text-xl font-semibold mb-4 text-center">모든 일정</h1>
       {data && data.length > 0 ? (
         <div
           className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3"
