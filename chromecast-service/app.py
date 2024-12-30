@@ -1,7 +1,9 @@
 from flask import Flask
+from flask_cors import CORS
 from routes import chromecast_routes
 
 app = Flask(__name__)
+CORS(app)
 
 app.register_blueprint(chromecast_routes.bp)
 

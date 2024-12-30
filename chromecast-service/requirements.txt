@@ -1,7 +1,8 @@
 flask
+flask-cors
 pychromecast
-boto3
-gtts
 python-dotenv
 rq
 redis
+sqlalchemy
+psycopg2-binary
