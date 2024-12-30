@@ -55,10 +55,12 @@ export class TaskModel extends BaseModel {
   @ManyToOne(() => ScheduleModel, (schedule) => schedule.tasks, {
     onDelete: 'CASCADE',
   })
-  @JoinColumn({ name: 'scheduleId' })
+  @JoinColumn({ name: 'schedule_id' })
   schedule: ScheduleModel;
 
   @Exclude()
-  @Column()
+  @Column({
+    name: "schedule_id"
+  })
   scheduleId: string;
 }

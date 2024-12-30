@@ -12,7 +12,6 @@ import {
 } from './common/const/env-keys.const';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModel } from './schedule/entities/schedule.entity';
-import { TaskModule } from './task/task.module';
 import { TaskModel } from './task/entites/task.entity';
 
 @Module({
@@ -29,7 +28,7 @@ import { TaskModel } from './task/entites/task.entity';
       password: process.env[ENV_DB_PASSWORD_KEY],
       database: process.env[ENV_DB_DATABASE_KEY],
       entities: [ScheduleModel,TaskModel],
-      synchronize: true,
+      //synchronize: true,
     }),
     ScheduleModule,
   ],
