@@ -2,7 +2,7 @@ from botocore import endpoint
 from botocore.exceptions import NoCredentialsError
 from botocore.session import PartialCredentialsError
 import pychromecast
-from pychromecast.controllers.media import MediaStatus, MediaStatusListener
+from pychromecast.controllers.media import MediaStatusListener
 from pychromecast.controllers.receiver import CastStatus, CastStatusListener
 
 from dotenv import load_dotenv
@@ -74,9 +74,6 @@ def generate_presigned_url(bucket_name, object_name, expiration=3600, method="ge
         print(f"Error generating presigned URL: {e}")
         return None
 
-chromecast_name=os.getenv('CHROMECAST_DEVICE_NAME')
-chromecast_ip=os.getenv('CHROMECAST_DEVICE_IP')
-
 stop_event = threading.Event()
 
 class MyCastStatusListener(CastStatusListener):
@@ -104,29 +101,26 @@ class MyMediaStatusListener(MediaStatusListener):
     def load_media_failed(self, item: int, error_code: int) -> None:
         print("load media failed!")
 
-def process_chromecast_request(device_id, data):
+def process_chromecast_request(data):
     """
     Chromecast 작업 처리 로직
-    :param device_id: Chromecast 기기 ID
-    :param data: 요청 데이터 (text, volume)
+    :param data: 요청 데이터
     :return: 성공 메시지
     """
-    text = data["text"]
-    volume = data["volume"]
-    language = data["language"]
+    
+    name = data["device"]["name"]
+    ip = data["device"]["ip"]
+    text = data["command"]["text"]
+    volume = data["command"]["volume"]
+    language = data["command"]["language"]
 
-    print(f"Processing request for device {device_id}:")
-    print(f"  - Text: {text}")
-    print(f"  - Volume: {volume}")
+    result = commandToDevice(name, ip, text, volume, language)
 
-    result = commandToDevice(text, volume, language)
-
-    # 처리 성공
-    return f"Text '{text}' was sent to device {device_id} with volume {volume}"
+    return f"Command is successfully sent (result: ${result})"
 
 
-def commandToDevice(text: str, volume: float, lang: str):
-    casts, browser = pychromecast.get_listed_chromecasts(friendly_names=[chromecast_name], known_hosts=[chromecast_ip])
+def commandToDevice(name:str, ip:str, text: str, volume: float, lang: str):
+    casts, browser = pychromecast.get_listed_chromecasts(friendly_names=[name], known_hosts=[ip])
     if not casts:
         print(f"Chromecast not found")
         return "Not found device"
@@ -135,7 +129,7 @@ def commandToDevice(text: str, volume: float, lang: str):
     cast.wait()
 
     fname = '/tmp/tts.mp3'
-    tts = gTTS(text, lang=lang, slow=True)
+    tts = gTTS(text, lang=lang, slow=False, tld="co.uk")
     tts.save(fname)
 
     bucket_name = 'vutler-tts'
