@@ -21,4 +21,13 @@ declare module "Type" {
       attemps: number;
     }[];
   };
+
+  type Device = {
+    rowId: string;
+    name: string;
+    ip: string;
+    volume: number;
+    createdAt: string;
+    updatedAt: string;
+  }
 }
