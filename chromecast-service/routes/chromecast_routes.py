@@ -54,6 +54,8 @@ def find_all_devices():
             "ip": device.ip_address,
         })
 
+    session.close()
+
     return jsonify({"status": "success", "data": result}), 200
 
 # Claim device
@@ -87,6 +89,8 @@ def claim_device():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+    session.close()
+
     return jsonify({"status": "success", "data": newDevice.to_dict()}), 201
 
 # Unclaim device
@@ -102,6 +106,8 @@ def unclaim_device():
 
     session.delete(device)
     session.commit()
+
+    session.close()
 
     return jsonify({"message": "Device unclaimed successfully", "data": ""}), 201
 
@@ -120,6 +126,8 @@ def getDeviceConnectivity(deviceId):
             "deviceId": deviceId,
             "isConnected": False
         }}), 200
+
+    session.close()
 
     return jsonify({"status": "success", "data": {
         "deviceId": deviceId,
@@ -163,6 +171,9 @@ def commandToDevice(deviceId):
         return jsonify({"status": "success", "data": {"job_id": job.id, "status": "queued"}}), 202
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        session.close()
+
 
 # Get device configuration
 @bp.route('/device/<deviceId>/configuration', methods=['GET'])
@@ -172,6 +183,8 @@ def get_device_configuration(deviceId):
     device = session.query(DeviceConfiguration).filter_by(row_id=deviceId).scalar()
     if device is None:
         return jsonify({"status": "error", "message": "device not found"}), 404
+
+    session.close()
 
     return jsonify({"status": "success", "data": {
         "deviceId": deviceId,
@@ -194,6 +207,8 @@ def set_device_configuration(deviceId):
     device.volume = data["volume"]
 
     session.commit()
+
+    session.close()
 
     return jsonify({"status": "success", "data": {
         "deviceId": deviceId,
