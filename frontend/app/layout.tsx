@@ -3,25 +3,33 @@
 import "./globals.css";
 import {
   NavigationProvider,
-  useNavigation,
 } from "@/contexts/navigationContext";
 import { TanstackQueryProvider } from "@/contexts/tanstackQueryContext";
-import { Navigation } from "@/components/navigation";
 import { NextUIProvider } from "@nextui-org/react";
+import { Header } from "@/components/header";
+import { useState } from "react";
+import { Sidebar } from "@/components/sidebar";
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
-  const { isCollapsed } = useNavigation();
+  const [isNavVisible, setIsNavVisible] = useState(false);
+
+  const toggleNav = () => setIsNavVisible((prev) => !prev);
 
   return (
-    <div className="flex min-h-dvh">
-      <Navigation />
-      <main
-        className={`flex-1 flex flex-col transition-all duration-100 ${
-          isCollapsed ? "ml-14" : "ml-64"
-        }`}
-      >
-        {children}
-      </main>
+    <div className="min-h-screen flex flex-col">
+      <Header toggleNav={toggleNav} />
+
+      <div className="flex-1 flex relative">
+        <Sidebar isNavVisible={isNavVisible} toggleNav={toggleNav} />
+
+        <main
+          className={`flex-1 flex flex-col transition-all duration-300 ${
+            isNavVisible ? "mr-14" : "mr-0"
+          }`}
+        >
+          {children}
+        </main>
+      </div>
     </div>
   );
 };

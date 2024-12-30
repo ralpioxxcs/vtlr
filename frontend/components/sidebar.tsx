@@ -1,20 +1,25 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
-import { useNavigation } from "@/contexts/navigationContext";
 import { usePathname } from "next/navigation";
 
 import HomeIcon from "@mui/icons-material/Home";
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import EventIcon from "@mui/icons-material/Event";
 import AccessAlarmIcon from "@mui/icons-material/AccessAlarm";
+
 import PlaylistAddCheckIcon from "@mui/icons-material/PlaylistAddCheck";
 import SettingsIcon from "@mui/icons-material/Settings";
-import { Menu } from "@mui/icons-material";
-import { Button } from "@nextui-org/react";
 
-export const Navigation = () => {
-  const { isCollapsed, toggleCollapse } = useNavigation();
+export const Sidebar = ({
+  isNavVisible,
+  toggleNav,
+}: {
+  isNavVisible: boolean;
+  toggleNav: () => void;
+}) => {
+  const pathname = usePathname();
 
   const navItems = [
     { label: "홈", path: "/", icon: <HomeIcon /> },
@@ -25,25 +30,13 @@ export const Navigation = () => {
     { label: "설정", path: "/setting", icon: <SettingsIcon /> },
   ];
 
-  const pathname = usePathname();
-
   return (
     <nav
-      className={`${isCollapsed ? "w-14" : "w-64"}
-         bg-slate-800 text-white h-full fixed top-0 right-0 overflow-hidden transition-all duration-100`}
+      className={`${
+        isNavVisible ? "translate-x-0" : "translate-x-full"
+      } fixed top-0 right-0 bg-slate-800 text-white h-full w-14 shadow-lg transition-transform duration-300 z-40`}
     >
-      <p className="px-2 py-4">
-        <Button
-          variant="light"
-          isIconOnly
-          onPress={toggleCollapse}
-          className="text-white text-xl focus:outline-none"
-        >
-          <Menu />
-        </Button>
-      </p>
-
-      <ul className="space-y-0">
+      <ul className="space-y-0 mt-12">
         {navItems.map((item) => (
           <li key={item.path}>
             <Link
@@ -52,21 +45,21 @@ export const Navigation = () => {
                 pathname === item.path ? "bg-slate-600" : "hover:bg-slate-700"
               }`}
             >
-                     <button
-              type="button"
-              className={`flex w-full ${
-                isCollapsed
-                  ? "flex-col items-center justify-center h-16"
-                  : "items-center gap-4 h-12 px-4"
-              }`}
-            >
+              <button
+                type="button"
+                className={`flex w-full ${
+                  isNavVisible
+                    ? "flex-col items-center justify-center h-16"
+                    : "items-center gap-4 h-12 px-4"
+                }`}
+              >
                 {item.icon}
-                {isCollapsed && (
+                {isNavVisible && (
                   <span className="text-xs text-gray-400 mt-1">
                     {item.label}
                   </span>
                 )}
-                {!isCollapsed && (
+                {!isNavVisible && (
                   <span className="text-sm text-gray-300 mt-1">
                     {item.label}
                   </span>

@@ -15,9 +15,13 @@ import {
 } from "@/pages/api/device";
 
 export default function DeviceSettings() {
+  const [volume, setVolume] = useState<number>(50); 
+
   const mutation = useMutation({
     mutationFn: async (newVolume: number) => {
-      if (!data[0]?.deviceId) throw new Error("Device ID not found");
+      if (!data[0]?.deviceId) {
+        throw new Error("Device ID not found");
+      }
       return await setDeviceConfiguration(data[0]?.deviceId, newVolume);
     },
     onSuccess: (response) => {
@@ -47,6 +51,7 @@ export default function DeviceSettings() {
       const result = await getDeviceConnection(data[0]?.deviceId);
       console.log("result:", result);
       if (result.status === "success") {
+        console.log("isConnected: ", result.data.isConnected);
         return result.data.isConnected;
       } else {
         throw new Error("error");
@@ -60,6 +65,7 @@ export default function DeviceSettings() {
     queryFn: async () => {
       const result = await getDeviceConfiguration(data[0]?.deviceId);
       if (result.status === "success") {
+        setVolume(result.data.volume);
         return result.data;
       } else {
         throw new Error("error");
@@ -68,14 +74,9 @@ export default function DeviceSettings() {
     enabled: !!data,
   });
 
-  const changeVolume = (vol: number) => {
-    config.volume = vol;
-  }
-
   const handleVolumeChange = (newVolume: number) => {
     mutation.mutate(newVolume);
   };
-
 
   if (isLoading) {
     return (
@@ -178,8 +179,8 @@ export default function DeviceSettings() {
               aria-label="slider"
               className="mt-2"
               size="md"
-              value={config.volume}
-              onChange={changeVolume}
+              value={volume}
+              onChange={setVolume}
               onChangeEnd={handleVolumeChange}
               maxValue={100}
               minValue={1}
