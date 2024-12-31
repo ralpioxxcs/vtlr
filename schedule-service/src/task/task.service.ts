@@ -3,6 +3,7 @@ import {
   InternalServerErrorException,
   Logger,
   NotFoundException,
+  OnModuleInit,
 } from '@nestjs/common';
 import { CreateTaskDto } from './dto/task.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -16,7 +17,7 @@ import { ScheduleModel } from 'src/schedule/entities/schedule.entity';
 import { UpdateTaskDto } from './dto/update-task.dto';
 
 @Injectable()
-export class TaskService {
+export class TaskService implements OnModuleInit {
   private readonly logger = new Logger(TaskService.name);
 
   constructor(
@@ -25,6 +26,11 @@ export class TaskService {
     private readonly taskRepository: Repository<TaskModel>,
     @InjectQueue('cronQueue') private readonly cronQueue: Queue,
   ) {}
+
+  async onModuleInit() {
+    this.logger.log('drain all jobs in queue');
+    await this.cronQueue.drain();
+  }
 
   private async createCronJob(
     category: ScheduleCategory,
@@ -81,8 +87,8 @@ export class TaskService {
       return await Promise.all(
         taskDtos.map(async (taskDto) => {
           const entity = queryRunner.manager.create(TaskModel, {
-            title: 'title',
-            description: 'desc',
+            title: 'title for task',
+            description: 'description for task',
             text: taskDto.text,
             volume: taskDto.volume,
             language: taskDto.language,

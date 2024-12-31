@@ -96,7 +96,6 @@ export class ScheduleService implements OnModuleInit, OnModuleDestroy {
   }
 
   async findAllSchedules(type?: string, category?: string) {
-    this.logger.debug('find all schedules');
     try {
       const rows = await this.scheduleRepository.find({
         where: {

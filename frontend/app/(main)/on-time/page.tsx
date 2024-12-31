@@ -109,7 +109,7 @@ export default function OnTime() {
                   />
                   <div
                     className={`w-12 h-6 bg-gray-300 rounded-full shadow-inner transition-colors duration-300 ${
-                      isEnabled ? "bg-indigo-700" : "bg-gray-300"
+                      isEnabled ? "bg-teal-600" : "bg-gray-300"
                     }`}
                   ></div>
                   <div
@@ -140,7 +140,7 @@ export default function OnTime() {
                   />
                   <div
                     className={`w-12 h-6 bg-gray-300 rounded-full shadow-inner transition-colors duration-300 ${
-                      isEnabled ? "bg-indigo-700" : "bg-gray-300"
+                      isEnabled ? "bg-teal-600" : "bg-gray-300"
                     }`}
                   ></div>
                   <div

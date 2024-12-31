@@ -34,7 +34,7 @@ export const Sidebar = ({
     <nav
       className={`${
         isNavVisible ? "translate-x-0" : "translate-x-full"
-      } fixed top-0 right-0 bg-slate-800 text-white h-full w-14 shadow-lg transition-transform duration-300 z-40`}
+      } fixed top-0 right-0 bg-zinc-800 text-white h-full w-14 shadow-lg transition-transform duration-300 z-40`}
     >
       <ul className="space-y-0 mt-12">
         {navItems.map((item) => (
@@ -42,7 +42,7 @@ export const Sidebar = ({
             <Link
               href={item.path}
               className={`block w-full rounded-xl ${
-                pathname === item.path ? "bg-slate-600" : "hover:bg-slate-700"
+                pathname === item.path ? "bg-zinc-600" : "hover:bg-zinc-700"
               }`}
             >
               <button

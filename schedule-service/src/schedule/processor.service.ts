@@ -23,8 +23,6 @@ export class CronProcessor extends WorkerHost {
   async process(job: Job<any, any, string>): Promise<any> {
     const { task } = job.data;
 
-    this.logger.log(`job execute!`);
-
     await this.handleTask(task);
   }
 

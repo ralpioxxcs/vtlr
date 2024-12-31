@@ -26,7 +26,7 @@ export default function CreateButton({
       <Button
         size="lg"
         radius="full"
-        className="fixed bottom-4 right-4 bg-gradient-to-tr from-slate-500 to-slate-900 hover:from-red-400 hover:to-red-900 text-white shadow-lg"
+        className="fixed bottom-4 right-16 bg-gradient-to-tr from-slate-500 to-slate-900 hover:from-red-400 hover:to-red-900 text-white shadow-lg"
         type="button"
         onPress={openModal}
       >

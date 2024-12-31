@@ -121,11 +121,11 @@ export default function ScheduleCard({
             <span className="text-sm text-gray-500">유형:</span>
             <span className="text-sm font-medium text-gray-700">
               {type === "recurring" ? (
-                <Chip size="sm" color="primary" radius="md" variant="flat">
+                <Chip size="sm" color="danger" radius="md" variant="flat">
                   루틴
                 </Chip>
               ) : (
-                <Chip size="sm" color="secondary" radius="md" variant="flat">
+                <Chip size="sm" color="warning" radius="md" variant="flat">
                   이벤트
                 </Chip>
               )}
@@ -158,7 +158,7 @@ export default function ScheduleCard({
                 id="toggle"
                 onClick={() => handleToggle()}
                 className={`w-8 h-4 flex items-center rounded-full cursor-pointer p-1 transition-colors ${
-                  active ? "bg-green-700" : "bg-gray-300"
+                  active ? "bg-teal-600" : "bg-gray-300"
                 }`}
               >
                 <span
