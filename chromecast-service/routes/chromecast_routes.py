@@ -127,12 +127,14 @@ def getDeviceConnectivity(deviceId):
             "isConnected": False
         }}), 200
 
-    session.close()
-
-    return jsonify({"status": "success", "data": {
+    ret = jsonify({"status": "success", "data": {
         "deviceId": deviceId,
         "isConnected": True
     }})
+
+    session.close()
+
+    return ret
 
 # Command to device
 @bp.route('/device/<deviceId>', methods=['POST'])
@@ -184,12 +186,14 @@ def get_device_configuration(deviceId):
     if device is None:
         return jsonify({"status": "error", "message": "device not found"}), 404
 
-    session.close()
-
-    return jsonify({"status": "success", "data": {
+    ret = jsonify({"status": "success", "data": {
         "deviceId": deviceId,
         "volume": device.volume
     }}), 200
+
+    session.close()
+
+    return ret
 
 # Update device configuration
 @bp.route('/device/<deviceId>/configuration', methods=['PATCH'])
@@ -208,9 +212,11 @@ def set_device_configuration(deviceId):
 
     session.commit()
 
-    session.close()
-
-    return jsonify({"status": "success", "data": {
+    ret = jsonify({"status": "success", "data": {
         "deviceId": deviceId,
         "volume": device.volume
     }}), 200
+
+    session.close()
+
+    return ret
