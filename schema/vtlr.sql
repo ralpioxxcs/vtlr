@@ -15,6 +15,7 @@ CREATE TABLE vtlr.schedule (
     category VARCHAR(64),
     interval VARCHAR(64) NOT NULL,
     active BOOLEAN NOT NULL,
+    remove_on_complete BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL
 );

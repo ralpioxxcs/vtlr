@@ -1,14 +1,15 @@
 import { HttpService } from '@nestjs/axios';
-import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Job } from 'bullmq';
 import { firstValueFrom } from 'rxjs';
+import { JOB_QUEUE_NAME } from 'src/common/const/queue.constg';
 import { TaskModel } from 'src/task/entites/task.entity';
 import { TaskStatus } from 'src/task/enum/task.enum';
 import { Repository } from 'typeorm';
 
-@Processor('cronQueue', {})
+@Processor(JOB_QUEUE_NAME, {})
 export class CronProcessor extends WorkerHost {
   private readonly logger = new Logger(CronProcessor.name);
 
@@ -20,56 +21,90 @@ export class CronProcessor extends WorkerHost {
     super();
   }
 
-  async process(job: Job<any, any, string>): Promise<any> {
-    const { task } = job.data;
+  @OnWorkerEvent('ready')
+  onReady() {
+    console.log('Worker is ready to process jobs');
+  }
 
-    await this.handleTask(task);
+  @OnWorkerEvent('closed')
+  onClosed() {
+    console.log('Worker has been closed');
+  }
+
+  @OnWorkerEvent('error')
+  onError(error: Error) {
+    console.error(`Worker encountered an error: ${error.message}`);
+  }
+
+  @OnWorkerEvent('active')
+  onActive(job: Job) {
+    console.log(`Job ${job.id} has started processing`);
+  }
+
+  @OnWorkerEvent('completed')
+  onCompleted(job: Job) {
+    console.log(`Job ${job.id} has been completed`);
+  }
+
+  @OnWorkerEvent('failed')
+  onFailed(job: Job, error: Error) {
+    console.error(`Job ${job.id} has failed with error: ${error.message}`);
+  }
+
+  @OnWorkerEvent('progress')
+  onProgress(job: Job, progress: number | object) {
+    console.log(`Job ${job.id} reported progress: ${JSON.stringify(progress)}`);
+  }
+
+  async process(job: Job<any, any, string>): Promise<any> {
+    await this.handleTask(job.data);
   }
 
   private async handleTask(task: TaskModel) {
     // Getting task information
-    const entities = await this.taskRepository.find({
-      where: {
-        rowId: task.rowId,
-      },
-      relations: ['schedule'],
-      order: {
-        createdAt: 'ASC',
-      },
-    });
+    // const entities = await this.taskRepository.find({
+    //   where: {
+    //     rowId: task.rowId,
+    //   },
+    //   relations: ['schedule'],
+    //   order: {
+    //     createdAt: 'ASC',
+    //   },
+    // });
 
     // Invoke tasks sequentially
-    for (const item of entities) {
-      if (!item.schedule.active) {
-        this.logger.log(
-          `schedule is not active, skip to invoke task (id: ${item.schedule.rowId})`,
-        );
-        continue;
-      }
+    //for (const item of entities) {
+    // if (!item.schedule.active) {
+    //   this.logger.log(
+    //     `schedule is not active, skip to invoke task (id: ${item.schedule.rowId})`,
+    //   );
+    //   continue;
+    // }
 
-      try {
-        const response = await this.requestChromecast({
-          text: item.text,
-          volume: item.volume / 100 || 0.5,
-          language: item.language || 'ko',
-        });
-        this.logger.log(`response: ${response}`);
+    try {
+      const response = await this.requestChromecast({
+        text: task.text,
+        volume: task.volume / 100 || 0.5,
+        language: task.language || 'ko',
+      });
 
-        // Update each task
-        item.status = TaskStatus.completed;
-        item.attemps += 1;
-        item.result = response;
+      this.logger.log(`response: ${JSON.stringify(response)}`);
 
-        await this.taskRepository.save(item);
-        this.logger.debug(`task updated (${JSON.stringify(item, null, 2)})`);
-      } catch (error) {
-        this.logger.error(`Error occurred invoking function (err: ${error})`);
-
-        item.status = TaskStatus.failed;
-        await this.taskRepository.save(item);
-        this.logger.debug(`task updated (${JSON.stringify(item, null, 2)})`);
-      }
+      // Update each task
+      // task.status = TaskStatus.completed;
+      // task.attemps += 1;
+      // task.result = response;
+      //
+      // await this.taskRepository.save(task);
+      // this.logger.debug(`task updated (${JSON.stringify(task, null, 2)})`);
+    } catch (error) {
+      this.logger.error(`Error occurred invoking function (err: ${error})`);
+      //
+      // task.status = TaskStatus.failed;
+      // await this.taskRepository.save(task);
+      // this.logger.debug(`task updated (${JSON.stringify(task, null, 2)})`);
     }
+    //}
   }
 
   private async requestChromecast(data: any) {

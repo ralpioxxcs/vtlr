@@ -66,6 +66,7 @@ def claim_device():
         return jsonify({"error": "Invalid or missing JSON payload"}), 400
 
     session = Session()
+
     newDevice = DeviceConfiguration(
         device_name=data["device_name"],
         ip_address=data["ip_address"],
@@ -89,9 +90,11 @@ def claim_device():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+    ret = jsonify({"status": "success", "data": newDevice.to_dict()}), 201
+
     session.close()
 
-    return jsonify({"status": "success", "data": newDevice.to_dict()}), 201
+    return ret
 
 # Unclaim device
 @bp.route('/device', methods=['DELETE'])
@@ -107,9 +110,11 @@ def unclaim_device():
     session.delete(device)
     session.commit()
 
+    ret = jsonify({"message": "Device unclaimed successfully", "data": ""}), 201
+
     session.close()
 
-    return jsonify({"message": "Device unclaimed successfully", "data": ""}), 201
+    return ret
 
 # Get device current connectivity
 @bp.route('/device/<deviceId>', methods=['GET'])

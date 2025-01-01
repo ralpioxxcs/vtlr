@@ -13,7 +13,7 @@ export class ScheduleModel extends BaseModel {
     length: 64,
   })
   title: string;
-  
+
   @Column({
     type: 'text',
     nullable: true,
@@ -43,6 +43,12 @@ export class ScheduleModel extends BaseModel {
     type: 'boolean',
   })
   active: boolean;
+
+  @Column({
+    name: 'remove_on_complete',
+    type: 'boolean',
+  })
+  removeOnComplete: boolean;
 
   @OneToMany(() => TaskModel, (task) => task.schedule, { cascade: true })
   tasks: TaskModel[];

@@ -46,6 +46,10 @@ export class CreateScheduleDto extends PickType(ScheduleModel, [
   @IsNotEmpty()
   active: boolean;
 
+  @IsBoolean()
+  @IsOptional()
+  removeOnComplete: boolean;
+
   @ValidateNested({ each: true })
   @Type(() => CreateTaskDto)
   task: CreateTaskDto[];

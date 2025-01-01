@@ -13,6 +13,9 @@ import {
 import { ScheduleService } from './schedule.service';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
+import { TxInterceptor } from 'src/common/interceptors/tx.interceptor';
+import { QueryRunner as QR } from 'typeorm';
+import { QueryRunner } from 'src/common/decorators/query-runner.decorator';
 
 @Controller('schedule')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -28,8 +31,12 @@ export class ScheduleController {
   }
 
   @Post()
-  async createSchedule(@Body() createSchedule: CreateScheduleDto) {
-    return this.scheduleService.createSchedule(createSchedule);
+  @UseInterceptors(TxInterceptor)
+  async createSchedule(
+    @Body() createSchedule: CreateScheduleDto,
+    @QueryRunner() qr: QR,
+  ) {
+    return this.scheduleService.createSchedule(createSchedule, qr);
   }
 
   @Get('/:scheduleId')

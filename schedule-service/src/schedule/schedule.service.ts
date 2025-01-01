@@ -2,7 +2,6 @@ import {
   Injectable,
   Logger,
   NotFoundException,
-  OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -13,17 +12,41 @@ import { CreateScheduleDto } from './dto/create-schedule.dto';
 import * as cronParser from 'cron-parser';
 import { TaskService } from 'src/task/task.service';
 import { ScheduleCategory, ScheduleType } from './enum/schedule.enum';
+import { JobService } from 'src/job/job.service';
 
 @Injectable()
-export class ScheduleService implements OnModuleInit, OnModuleDestroy {
+export class ScheduleService implements OnModuleInit {
   private readonly logger = new Logger(ScheduleService.name);
 
   constructor(
     private readonly taskService: TaskService,
+    private readonly jobService: JobService,
     private readonly dataSource: DataSource,
     @InjectRepository(ScheduleModel)
     private readonly scheduleRepository: Repository<ScheduleModel>,
   ) {}
+
+  getRepository(qr?: QueryRunner) {
+    return qr
+      ? qr.manager.getRepository<ScheduleModel>(ScheduleModel)
+      : this.scheduleRepository;
+  }
+
+  getPriority(category: ScheduleCategory) {
+    // create jobs corresponding to schedule tasks
+    let priority = 0;
+    if (category === ScheduleCategory.onTime) {
+      priority = 0;
+    } else if (category === ScheduleCategory.event) {
+      priority = 1;
+    } else if (category === ScheduleCategory.routine) {
+      priority = 2;
+    } else {
+      throw new Error('Unsupported schedule category');
+    }
+
+    return priority;
+  }
 
   async onModuleInit() {
     this.logger.debug('initializing schedules');
@@ -60,17 +83,15 @@ export class ScheduleService implements OnModuleInit, OnModuleDestroy {
       });
 
       for (const entity of initEntities) {
-        await this.taskService.createTask(
-          entity,
-          entity.tasks.map((task) => {
-            return {
-              text: task.text,
-              volume: task.volume,
-              language: task.language,
-            };
-          }),
-        );
-        await this.delay(100); // CronJob Id생성시 타임스탬프 중복 방지를 위한 딜레이
+        for (const task of entity.tasks) {
+          await this.jobService.createJob(
+            entity.interval,
+            entity.rowId,
+            task,
+            this.getPriority(entity.category),
+          );
+        }
+        await this.delay(100); // Job Name 생성시 타임스탬프 중복 방지를 위한 딜레이
       }
 
       await qr.commitTransaction();
@@ -83,16 +104,6 @@ export class ScheduleService implements OnModuleInit, OnModuleDestroy {
     } finally {
       await qr.release();
     }
-  }
-
-  onModuleDestroy() {
-    this.logger.debug('Clean-up');
-  }
-
-  getRepository(qr?: QueryRunner) {
-    return qr
-      ? qr.manager.getRepository<ScheduleModel>(ScheduleModel)
-      : this.scheduleRepository;
   }
 
   async findAllSchedules(type?: string, category?: string) {
@@ -153,18 +164,32 @@ export class ScheduleService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async createSchedule(scheduleDto: CreateScheduleDto) {
+  async createSchedule(scheduleDto: CreateScheduleDto, qr?: QueryRunner) {
+    const repo = this.getRepository(qr);
+
     try {
-      const entity = this.scheduleRepository.create({
+      // 하나의 Schedule 데이터를 생성한다
+      const entity = repo.create({
         ...scheduleDto,
       });
-      const newSchedule = await this.scheduleRepository.save(entity);
+      const newSchedule = await repo.save(entity);
 
+      // 하위 여러개의 Task 데이터를 생성한다
       const tasks = await this.taskService.createTask(
         newSchedule,
         scheduleDto.task,
+        qr,
       );
       newSchedule.tasks = tasks;
+
+      for (const task of tasks) {
+        await this.jobService.createJob(
+          entity.interval,
+          entity.rowId,
+          task,
+          this.getPriority(entity.category),
+        );
+      }
 
       return newSchedule;
     } catch (error) {
@@ -177,24 +202,28 @@ export class ScheduleService implements OnModuleInit, OnModuleDestroy {
     id: string,
     scheduleDto: UpdateScheduleDto,
   ): Promise<ScheduleModel> {
+    this.logger.log(`update the schedule (id: ${id})`);
+
     try {
-      const scheduleEntity = await this.scheduleRepository.findOne({
+      const entity = await this.scheduleRepository.findOne({
         where: {
           rowId: id,
         },
       });
 
-      if (!scheduleEntity) {
+      if (!entity) {
         throw new NotFoundException('not found schedule corresponding id');
       }
 
-      const mergedSchedule = this.scheduleRepository.merge(
-        scheduleEntity,
-        scheduleDto,
-      );
-      await this.scheduleRepository.save(mergedSchedule);
+      const updatedEntity = this.scheduleRepository.merge(entity, scheduleDto);
+      await this.scheduleRepository.save(updatedEntity);
 
-      return scheduleEntity;
+      await this.jobService.createJob(
+        updatedEntity.interval,
+        updatedEntity.rowId,
+      );
+
+      return updatedEntity;
     } catch (error) {
       this.logger.error(`Error occurred update schedule (err: ${error})`);
       throw error;
@@ -202,17 +231,24 @@ export class ScheduleService implements OnModuleInit, OnModuleDestroy {
   }
 
   async deleteSchedule(id: string) {
+    this.logger.log(`delete the schedule (id: ${id})`);
+
     try {
-      const schedule = await this.scheduleRepository.findOne({
+      const entity = await this.scheduleRepository.findOne({
         where: {
           rowId: id,
         },
       });
-      if (!schedule) {
+      if (!entity) {
         throw new NotFoundException('not found schedule corresponding id');
       }
 
-      return await this.scheduleRepository.remove(schedule);
+      const result = await this.jobService.deleteJob(entity.rowId);
+      if (!result) {
+        throw Error(`failed to remove the job`);
+      }
+
+      await this.scheduleRepository.remove(entity);
     } catch (error) {
       this.logger.error(`Error occurred deleting schedule (err: ${error})`);
       throw error;
