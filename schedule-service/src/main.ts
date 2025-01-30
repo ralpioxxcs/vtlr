@@ -3,6 +3,9 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ScheduleModel } from './schedule/entities/schedule.entity';
+import { SwaggerTheme, SwaggerThemeNameEnum } from 'swagger-themes';
+import { TaskModel } from './task/entites/task.entity';
+import { UserModel } from './user/entities/user.entity';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -22,9 +25,15 @@ async function bootstrap() {
 
   const documentFactory = () =>
     SwaggerModule.createDocument(app, config, {
-      extraModels: [ScheduleModel],
+      extraModels: [ScheduleModel, TaskModel, UserModel],
     });
   SwaggerModule.setup('api', app, documentFactory);
+  const theme = new SwaggerTheme();
+  const options = {
+    explorer: false,
+    customCss: theme.getBuffer(SwaggerThemeNameEnum.NORD_DARK),
+  };
+  SwaggerModule.setup('api', app, documentFactory, options);
 
   app.useGlobalPipes(
     new ValidationPipe({

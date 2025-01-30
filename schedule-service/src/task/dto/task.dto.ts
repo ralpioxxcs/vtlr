@@ -5,10 +5,6 @@ export class CreateTaskDto {
   @IsNotEmpty()
   text: string;
 
-  @IsNumber()
-  @IsNotEmpty()
-  volume: number;
-
   @IsString()
   @IsNotEmpty()
   language: string;

@@ -1,21 +1,39 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { Job, Queue } from 'bullmq';
-import { JOB_QUEUE_NAME } from 'src/common/const/queue.constg';
+import { JOB_QUEUE_NAME, TTS_QUEUE_NAME } from 'src/common/const/queue.constg';
 
 @Injectable()
 export class JobService {
   private readonly logger = new Logger(JobService.name);
 
-  constructor(@InjectQueue(JOB_QUEUE_NAME) private readonly cronQueue: Queue) {}
+  constructor(
+    @InjectQueue(JOB_QUEUE_NAME) private readonly cronQueue: Queue,
+    @InjectQueue(TTS_QUEUE_NAME) private readonly ttsQueue: Queue,
+  ) {}
 
   async createJob(
     cronExpr: string,
     jobId: string,
-    payload?: object,
+    payload?: any,
     priority?: number,
-    //autoRemove?: boolean,
+    autoRemove?: boolean,
   ): Promise<Job> {
+
+    const ttsJobName = `tts_job_${new Date().getTime()}`;
+
+    const ttsJobResult = await this.ttsQueue.add(
+      ttsJobName,
+      {
+        id: payload.id,
+        voice: 'model',
+        text: payload.text,
+      }
+    );
+    this.logger.log(`tts job added (${ttsJobResult.id}) successfully`);
+
+    //---------------------------------------------------------------------
+
     const jobName = `vtlr-service_${new Date().getTime()}`;
 
     // BullMQ에 task의 payload를 담은 repeatable job을 생성한다

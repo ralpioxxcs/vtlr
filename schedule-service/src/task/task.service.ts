@@ -6,6 +6,7 @@ import { QueryRunner, Repository } from 'typeorm';
 import { TaskStatus } from './enum/task.enum';
 import { ScheduleModel } from 'src/schedule/entities/schedule.entity';
 import { UpdateTaskDto } from './dto/update-task.dto';
+import { UserService } from 'src/user/user.service';
 
 @Injectable()
 export class TaskService {
@@ -14,6 +15,7 @@ export class TaskService {
   constructor(
     @InjectRepository(TaskModel)
     private readonly taskRepository: Repository<TaskModel>,
+    private readonly userService: UserService,
   ) {}
 
   getRepository(qr?: QueryRunner) {
@@ -28,7 +30,7 @@ export class TaskService {
 
   async findTaskById(id: string): Promise<TaskModel[]> {
     return this.taskRepository.find({
-      where: { rowId: id },
+      where: { id },
     });
   }
 
@@ -39,19 +41,23 @@ export class TaskService {
   ): Promise<TaskModel[]> {
     const repo = this.getRepository(qr);
 
+    // FIXME: 유저정보를 따로 관리
+    const user = await this.userService.getUserByRole('admin');
+
     return await Promise.all(
       taskDtos.map(async (taskDto) => {
         const entity = repo.create({
-          title: 'title for task',
-          description: 'description for task',
+          userId: user.id,
+          // FIXME: task별 title과 description 정보를 받아야 함
+          title: 'title',
+          description: 'description',
           text: taskDto.text,
-          volume: taskDto.volume,
           language: taskDto.language,
           status: TaskStatus.pending,
           attemps: 0,
           result: {},
         });
-        entity.scheduleId = parentSchedule.rowId;
+        entity.scheduleId = parentSchedule.id;
 
         await repo.save(entity);
 
@@ -64,7 +70,7 @@ export class TaskService {
     try {
       const entity = await this.taskRepository.findOne({
         where: {
-          rowId: id,
+          id,
         },
       });
 
@@ -86,7 +92,7 @@ export class TaskService {
     try {
       const entity = await this.taskRepository.findOne({
         where: {
-          rowId: id,
+          id,
         },
       });
 

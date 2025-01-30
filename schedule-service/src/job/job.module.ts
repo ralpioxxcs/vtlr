@@ -6,7 +6,7 @@ import {
 } from 'src/common/const/env-keys.const';
 import { Module } from '@nestjs/common';
 import { JobService } from './job.service';
-import { JOB_QUEUE_NAME } from 'src/common/const/queue.constg';
+import { JOB_QUEUE_NAME, TTS_QUEUE_NAME } from 'src/common/const/queue.constg';
 
 @Module({
   imports: [
@@ -17,9 +17,12 @@ import { JOB_QUEUE_NAME } from 'src/common/const/queue.constg';
         port: Number(process.env[ENV_REDIS_PORT_KEY] || 6379),
       },
     }),
-    BullModule.registerQueue({
-      name: JOB_QUEUE_NAME,
-    }),
+    BullModule.registerQueue(
+      {
+        name: JOB_QUEUE_NAME,
+      },
+      { name: TTS_QUEUE_NAME },
+    ),
   ],
   providers: [JobService],
   exports: [JobService],

@@ -67,7 +67,7 @@ export class ScheduleService implements OnModuleInit {
       //
       const initEntities = entities.filter((entity) => {
         if (entity.type === ScheduleType.recurring) {
-          this.logger.debug(`recurring schedule (id: ${entity.rowId})`);
+          this.logger.debug(`recurring schedule (id: ${entity.id})`);
           return true;
         }
 
@@ -76,7 +76,7 @@ export class ScheduleService implements OnModuleInit {
           this.isCronExpired(entity.interval) === false
         ) {
           this.logger.debug(
-            `schedule is not expired (cronExp: ${entity.interval}, id: ${entity.rowId})`,
+            `schedule is not expired (cronExp: ${entity.interval}, id: ${entity.id})`,
           );
           return true;
         }
@@ -86,7 +86,7 @@ export class ScheduleService implements OnModuleInit {
         for (const task of entity.tasks) {
           await this.jobService.createJob(
             entity.interval,
-            entity.rowId,
+            entity.id,
             task,
             this.getPriority(entity.category),
           );
@@ -126,7 +126,7 @@ export class ScheduleService implements OnModuleInit {
     try {
       const row = await this.scheduleRepository.findOne({
         where: {
-          rowId: id,
+          id,
         },
         relations: ['tasks'],
       });
@@ -168,6 +168,13 @@ export class ScheduleService implements OnModuleInit {
     const repo = this.getRepository(qr);
 
     try {
+      //  * Schedule
+      //   - Task_1
+      //   - Task_2
+      //   - Task_3
+      //   - Task_4
+      //   - ...
+      
       // 하나의 Schedule 데이터를 생성한다
       const entity = repo.create({
         ...scheduleDto,
@@ -185,9 +192,10 @@ export class ScheduleService implements OnModuleInit {
       for (const task of tasks) {
         await this.jobService.createJob(
           entity.interval,
-          entity.rowId,
+          entity.id,
           task,
           this.getPriority(entity.category),
+          scheduleDto.removeOnComplete || false
         );
       }
 
@@ -207,7 +215,7 @@ export class ScheduleService implements OnModuleInit {
     try {
       const entity = await this.scheduleRepository.findOne({
         where: {
-          rowId: id,
+          id: id,
         },
       });
 
@@ -218,10 +226,7 @@ export class ScheduleService implements OnModuleInit {
       const updatedEntity = this.scheduleRepository.merge(entity, scheduleDto);
       await this.scheduleRepository.save(updatedEntity);
 
-      await this.jobService.createJob(
-        updatedEntity.interval,
-        updatedEntity.rowId,
-      );
+      await this.jobService.createJob(updatedEntity.interval, updatedEntity.id);
 
       return updatedEntity;
     } catch (error) {
@@ -236,14 +241,14 @@ export class ScheduleService implements OnModuleInit {
     try {
       const entity = await this.scheduleRepository.findOne({
         where: {
-          rowId: id,
+          id: id,
         },
       });
       if (!entity) {
         throw new NotFoundException('not found schedule corresponding id');
       }
 
-      const result = await this.jobService.deleteJob(entity.rowId);
+      const result = await this.jobService.deleteJob(entity.id);
       if (!result) {
         throw Error(`failed to remove the job`);
       }

@@ -5,7 +5,7 @@ import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 
 @Entity({
   schema: 'vtlr',
-  name: 'task',
+  name: 'tasks',
 })
 export class TaskModel extends BaseModel {
   @Column({
@@ -29,11 +29,6 @@ export class TaskModel extends BaseModel {
     type: 'text',
   })
   text: string;
-
-  @Column({
-    type: 'integer',
-  })
-  volume: number;
 
   @Column({
     type: 'varchar',
@@ -63,4 +58,11 @@ export class TaskModel extends BaseModel {
     name: "schedule_id"
   })
   scheduleId: string;
+
+  @Column({
+    name: 'user_id',
+    type: 'uuid',
+    nullable: false 
+  })
+  userId: string;
 }

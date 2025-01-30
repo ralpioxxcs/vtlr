@@ -5,7 +5,7 @@ import { TaskModel } from 'src/task/entites/task.entity';
 
 @Entity({
   schema: 'vtlr',
-  name: 'schedule',
+  name: 'schedules',
 })
 export class ScheduleModel extends BaseModel {
   @Column({
