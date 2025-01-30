@@ -7,11 +7,12 @@ import uuid
 
 Base = declarative_base()
 
-class DeviceConfiguration(Base):
-    __tablename__ = 'device_configuration'
+class UserDevices(Base):
+    __tablename__ = 'user_devices'
     __table_args__ = {'schema': 'vtlr'}
 
-    row_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, server_default=text("uuid_generate_v4()"))
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, server_default=text("uuid_generate_v4()"))
+    user_id = Column(UUID(as_uuid=True), nullable=False)
     device_name = Column(String(64), nullable=False)
     ip_address = Column(String(45), nullable=False)
     mac_address = Column(String(17), nullable=True)
@@ -24,7 +25,8 @@ class DeviceConfiguration(Base):
 
     def to_dict(self):
         return {
-            'row_id': self.row_id,
+            'id': self.id,
+            'user_id': self.user_id,
             'device_name': self.device_name,
             'ip_address': self.ip_address,
             'mac_address': self.mac_address,
