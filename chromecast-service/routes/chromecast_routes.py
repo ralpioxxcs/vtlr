@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from models.users_device import UserDevices 
+from models.users_device import UserDevices
 from services.chromecast_service import findDevice
 from utils.validators import validate_chromecast_dto
 
@@ -134,8 +134,7 @@ def unclaim_device():
 def getDeviceConnectivity(deviceId):
   session = Session()
 
-  device = session.query(UserDevices).filter_by(
-      id=deviceId).scalar()
+  device = session.query(UserDevices).filter_by(id=deviceId).scalar()
   if device is None:
     return jsonify({"status": "error", "message": "device not found"}), 404
 
@@ -192,7 +191,7 @@ def commandToDevice():
               "device": {
                   "name": device.device_name,
                   "ip": device.ip_address,
-                  "volume": device.volume
+                  "volume": device.volume / 100
               },
           })
 
@@ -212,8 +211,7 @@ def commandToDevice():
 def get_device_configuration(deviceId):
   session = Session()
 
-  device = session.query(UserDevices).filter_by(
-      id=deviceId).scalar()
+  device = session.query(UserDevices).filter_by(id=deviceId).scalar()
   if device is None:
     return jsonify({"status": "error", "message": "device not found"}), 404
 
@@ -239,8 +237,7 @@ def set_device_configuration(deviceId):
 
   session = Session()
 
-  device = session.query(UserDevices).filter_by(
-      id=deviceId).first()
+  device = session.query(UserDevices).filter_by(id=deviceId).first()
   if device is None:
     return jsonify({"status": "error", "message": "device not found"}), 404
 

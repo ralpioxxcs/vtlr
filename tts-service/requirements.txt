@@ -7,8 +7,8 @@ boto3
 python-dotenv
 
 txtsplit
-torch
-torchaudio
+torch==2.5.1
+torchaudio==2.5.1
 cached_path
 transformers
 num2words==0.5.12
@@ -34,3 +34,4 @@ langid==1.1.6
 tqdm
 tensorboard==2.16.2
 loguru==0.7.2
+-f https://download.pytorch.org/whl/cpu.html

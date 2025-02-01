@@ -9,7 +9,6 @@ sys.path.append(str(submodule_path))
 
 from melo.api import TTS
 
-
 def makeSpeech(configPath: str, checkPointPath: str, speechText: str):
   lang = 'KR'
   cfgPath = configPath
