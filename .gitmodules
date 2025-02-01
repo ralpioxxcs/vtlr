@@ -1,6 +1,3 @@
 [submodule "tts-service/external/melo"]
 	path = tts-service/external/melo
 	url = https://github.com/myshell-ai/MeloTTS
-[submodule "worker-service/external/MeloTTS"]
-	path = worker-service/external/MeloTTS
-	url = https://github.com/myshell-ai/MeloTTS
