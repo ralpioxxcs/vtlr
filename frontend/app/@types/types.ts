@@ -1,6 +1,6 @@
 declare module "Type" {
   type ScheduleList = {
-    rowId: string;
+    id: string;
     updatedAt: string;
     createdAt: string;
     title: string;
@@ -10,7 +10,7 @@ declare module "Type" {
     interval: string;
     active: boolean;
     tasks: {
-      rowId: string;
+      id: string;
       updatedAt: string;
       createdAt: string;
       status: "pending" | "completed";
@@ -23,7 +23,7 @@ declare module "Type" {
   };
 
   type Device = {
-    rowId: string;
+    id: string;
     name: string;
     ip: string;
     volume: number;

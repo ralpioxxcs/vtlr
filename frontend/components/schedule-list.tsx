@@ -68,8 +68,8 @@ export default function ScheduleCardList({
         >
           {data?.map((schedule: any) => (
             <ScheduleCard
-              key={schedule.rowId}
-              id={schedule.rowId}
+              key={schedule.id}
+              id={schedule.id}
               title={schedule.title}
               description={schedule.description}
               type={schedule.type}

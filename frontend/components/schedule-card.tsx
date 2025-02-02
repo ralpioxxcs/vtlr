@@ -8,7 +8,7 @@ import parser from "cron-parser";
 
 interface ScheduleProps {
   queryId: string;
-  id: ScheduleList["rowId"];
+  id: ScheduleList["id"];
   title: ScheduleList["title"];
   type: ScheduleList["type"];
   interval: ScheduleList["interval"];

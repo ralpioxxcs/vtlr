@@ -34,21 +34,21 @@ export default function OnTime() {
       data[hour] = !data[hour];
 
       const onTimeScheduleList = await getScheduleList("recurring", "on_time");
-      const hourList: { active: boolean; rowId: string }[] = Array.from(
+      const hourList: { active: boolean; id: string }[] = Array.from(
         { length: 24 },
         () => ({
           active: false,
-          rowId: "",
+          id: "",
         }),
       );
 
       for (const schedule of onTimeScheduleList) {
         const hour = schedule.interval.split(" ")[1];
-        const rowId = schedule.rowId;
+        const id = schedule.id;
         const active = schedule.active;
         hourList[+hour] = {
           active,
-          rowId,
+          id,
         };
       }
 
@@ -61,7 +61,7 @@ export default function OnTime() {
           `0 ${hour} * * *`,
         );
       } else {
-        await updateSchedule(hourList[hour].rowId, {
+        await updateSchedule(hourList[hour].id, {
           active: !hourList[hour].active,
         });
       }

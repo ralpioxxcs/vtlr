@@ -37,9 +37,9 @@ export default function EventPage() {
         >
           {data.map((schedule: any) => (
             <ScheduleCard
-              key={schedule.rowId}
+              key={schedule.id}
               queryId={queryId}
-              id={schedule.rowId}
+              id={schedule.id}
               title={schedule.title}
               type={schedule.type}
               interval={schedule.interval}
