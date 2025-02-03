@@ -53,6 +53,7 @@ export default function OnTime() {
       }
 
       let meridiem;
+      let speakHour = hour;
 
       if (hour >= 0 && hour < 6) {
         meridiem = "새벽";
@@ -60,11 +61,11 @@ export default function OnTime() {
         meridiem = "오전";
       } else if (hour >= 12 && hour < 18) {
         if (hour !== 12) {
-          hour -= 12;
+          speakHour -= 12;
         }
         meridiem = "오후";
       } else {
-        hour -= 12;
+        speakHour -= 12;
         meridiem = "밤";
       }
 
@@ -73,7 +74,7 @@ export default function OnTime() {
           "recurring",
           "on_time",
           `on_time_schedule_${hour}`,
-          `현재 시각은 ${meridiem} ${hour}시 입니다.`,
+          `현재 시각은 ${meridiem} ${speakHour}시 입니다.`,
           `0 ${hour} * * *`,
         );
       } else {

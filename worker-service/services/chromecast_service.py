@@ -118,7 +118,7 @@ def commandToDevice(name: str, ip: str, volume: int, playId: str):
   cast.wait()
 
   bucket_name = 'vtlr-dev-tts-speech'
-  object_name = os.path.join('fcf51c3e-4d11-491d-aad5-d9317091fcbe', 'tts.wav')
+  object_name = os.path.join(playId, 'tts.wav')
 
   url = generate_presigned_url(bucket_name, object_name)
 

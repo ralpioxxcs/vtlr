@@ -6,7 +6,7 @@ from routes import tts_routes
 import sys
 from pathlib import Path
 
-from melo.api import TTS
+#from melo.api import TTS
 
 submodule_path = Path(__file__).resolve().parent / "external/melo"
 sys.path.append(str(submodule_path))
