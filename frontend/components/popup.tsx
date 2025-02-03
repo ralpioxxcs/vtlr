@@ -14,7 +14,7 @@ import {
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ScheduleList } from "Type";
 import type { ReactNode } from "react";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 
 interface ModalProps {
   onClose: () => void;
@@ -160,7 +160,7 @@ export default function Modal({
           validationBehavior="native"
           onSubmit={onSubmit}
         >
-          <div className="flex flex-col gap-4 w-full">
+          <div className="flex flex-col gap-6 w-full">
             <Input
               isRequired
               label="제목"

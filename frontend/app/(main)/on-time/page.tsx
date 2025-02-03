@@ -52,12 +52,28 @@ export default function OnTime() {
         };
       }
 
+      let meridiem;
+
+      if (hour >= 0 && hour < 6) {
+        meridiem = "새벽";
+      } else if (hour >= 6 && hour < 12) {
+        meridiem = "오전";
+      } else if (hour >= 12 && hour < 18) {
+        if (hour !== 12) {
+          hour -= 12;
+        }
+        meridiem = "오후";
+      } else {
+        hour -= 12;
+        meridiem = "밤";
+      }
+
       if (!hourList[hour].active) {
         await createSchedule(
           "recurring",
           "on_time",
           `on_time_schedule_${hour}`,
-          `현재 시각 ${hour}시 입니다.`,
+          `현재 시각은 ${meridiem} ${hour}시 입니다.`,
           `0 ${hour} * * *`,
         );
       } else {

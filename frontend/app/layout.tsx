@@ -9,7 +9,7 @@ import { useState } from "react";
 import { Sidebar } from "@/components/sidebar";
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
-  const [isNavVisible, setIsNavVisible] = useState(true);
+  const [isNavVisible, setIsNavVisible] = useState(false);
 
   const toggleNav = () => {
     setIsNavVisible((prev) => !prev);
