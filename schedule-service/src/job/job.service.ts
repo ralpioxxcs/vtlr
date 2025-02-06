@@ -18,18 +18,16 @@ export class JobService {
     payload?: any,
     priority?: number,
     autoRemove?: boolean,
+    // startDate?: Date,
+    // endDate?: Date,
   ): Promise<Job> {
-
     const ttsJobName = `tts_job_${new Date().getTime()}`;
 
-    const ttsJobResult = await this.ttsQueue.add(
-      ttsJobName,
-      {
-        id: payload.id,
-        voice: 'model',
-        text: payload.text,
-      }
-    );
+    const ttsJobResult = await this.ttsQueue.add(ttsJobName, {
+      id: payload.id,
+      voice: 'model',
+      text: payload.text,
+    });
     this.logger.log(`tts job added (${ttsJobResult.id}) successfully`);
 
     //---------------------------------------------------------------------
@@ -37,11 +35,13 @@ export class JobService {
     const jobName = `vtlr-service_${new Date().getTime()}`;
 
     // BullMQ에 task의 payload를 담은 repeatable job을 생성한다
+    //  * one_time
     const result = await this.cronQueue.upsertJobScheduler(
       jobId,
       {
         pattern: cronExpr,
         tz: 'Asia/Seoul',
+        count: autoRemove ? 1 : 0,
       },
       {
         name: jobName,
@@ -49,7 +49,8 @@ export class JobService {
         opts: {
           attempts: 0,
           priority: priority || 0,
-          //removeOnComplete: autoRemove,
+          removeOnComplete: true,
+          removeOnFail: true,
         },
       },
     );

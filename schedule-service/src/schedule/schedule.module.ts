@@ -8,7 +8,12 @@ import { TaskModule } from 'src/task/task.module';
 import { JobModule } from 'src/job/job.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ScheduleModel]), HttpModule, TaskModule, JobModule],
+  imports: [
+    TypeOrmModule.forFeature([ScheduleModel]),
+    HttpModule,
+    TaskModule,
+    JobModule,
+  ],
   controllers: [ScheduleController],
   providers: [ScheduleService],
 })
