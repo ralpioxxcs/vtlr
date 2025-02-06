@@ -47,6 +47,7 @@ export default function Home() {
               interval={schedule.interval}
               command={schedule.tasks[0].text} // FIXME:
               active={schedule.active}
+              removeOnComplete={schedule.removeOnComplete}
             />
           ))}
         </div>

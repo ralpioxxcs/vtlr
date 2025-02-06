@@ -45,6 +45,7 @@ export default function EventPage() {
               interval={schedule.interval}
               command={schedule.tasks[0].text}
               active={schedule.active}
+              removeOnComplete={schedule.removeOnComplete}
             />
           ))}
         </div>

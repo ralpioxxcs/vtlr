@@ -80,12 +80,9 @@ export async function deleteSchedule(id: string) {
   const url = `${baseURL}/v1.0/scheduler/schedule/${id}`;
 
   try {
-    const response = await fetch(url, {
+    await fetch(url, {
       method: "DELETE",
     });
-    const json = await response.json();
-    console.log(json);
-    return json;
   } catch (err) {
     console.error(`error is occured (${err})`);
     throw err;

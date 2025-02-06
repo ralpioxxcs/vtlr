@@ -9,6 +9,7 @@ declare module "Type" {
     category: "event" | "on_time" | "routine";
     interval: string;
     active: boolean;
+    removeOnComplete: boolean;
     tasks: {
       id: string;
       updatedAt: string;
@@ -29,5 +30,5 @@ declare module "Type" {
     volume: number;
     createdAt: string;
     updatedAt: string;
-  }
+  };
 }
