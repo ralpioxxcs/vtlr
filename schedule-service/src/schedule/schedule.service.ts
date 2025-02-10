@@ -13,6 +13,7 @@ import * as cronParser from 'cron-parser';
 import { TaskService } from 'src/task/task.service';
 import { ScheduleCategory, ScheduleType } from './enum/schedule.enum';
 import { JobService } from 'src/job/job.service';
+import { CreateTaskDto } from 'src/task/dto/task.dto';
 
 @Injectable()
 export class ScheduleService implements OnModuleInit {
@@ -174,7 +175,7 @@ export class ScheduleService implements OnModuleInit {
       //   - Task_3
       //   - Task_4
       //   - ...
-      
+
       // 하나의 Schedule 데이터를 생성한다
       const entity = repo.create({
         ...scheduleDto,
@@ -195,7 +196,7 @@ export class ScheduleService implements OnModuleInit {
           entity.id,
           task,
           this.getPriority(entity.category),
-          scheduleDto.removeOnComplete || false
+          scheduleDto.removeOnComplete || false,
         );
       }
 
@@ -258,6 +259,10 @@ export class ScheduleService implements OnModuleInit {
       this.logger.error(`Error occurred deleting schedule (err: ${error})`);
       throw error;
     }
+  }
+
+  async addTask(id: string, taskDto: CreateTaskDto, qr: QueryRunner) {
+    return null;
   }
 
   private delay(ms: number): Promise<void> {
