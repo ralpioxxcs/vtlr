@@ -3,6 +3,7 @@ import { ScheduleModel } from '../entities/schedule.entity';
 import { ScheduleCategory, ScheduleType } from '../enum/schedule.enum';
 import {
   IsBoolean,
+  IsDateString,
   IsEnum,
   IsNotEmpty,
   IsOptional,
@@ -49,6 +50,14 @@ export class CreateScheduleDto extends PickType(ScheduleModel, [
   @IsBoolean()
   @IsOptional()
   removeOnComplete: boolean;
+
+  @IsDateString()
+  @IsOptional()
+  startTime: string;
+
+  @IsDateString()
+  @IsOptional()
+  endTime: string;
 
   @ValidateNested({ each: true })
   @Type(() => CreateTaskDto)

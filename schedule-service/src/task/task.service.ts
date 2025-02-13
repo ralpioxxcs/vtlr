@@ -48,9 +48,8 @@ export class TaskService {
       taskDtos.map(async (taskDto) => {
         const entity = repo.create({
           userId: user.id,
-          // FIXME: task별 title과 description 정보를 받아야 함
-          title: 'title',
-          description: 'description',
+          title: taskDto.title || 'title',
+          description: taskDto.description || 'description',
           text: taskDto.text,
           language: taskDto.language,
           status: TaskStatus.pending,

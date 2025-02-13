@@ -18,8 +18,8 @@ export class JobService {
     payload?: any,
     priority?: number,
     autoRemove?: boolean,
-    // startDate?: Date,
-    // endDate?: Date,
+    startTime?: Date,
+    endTime?: Date,
   ): Promise<Job> {
     const ttsJobName = `tts_job_${new Date().getTime()}`;
 
@@ -31,14 +31,14 @@ export class JobService {
     this.logger.log(`tts job added (${ttsJobResult.id}) successfully`);
 
     //---------------------------------------------------------------------
-
     const jobName = `vtlr-service_${new Date().getTime()}`;
 
     // BullMQ에 task의 payload를 담은 repeatable job을 생성한다
-    //  * one_time
     const result = await this.cronQueue.upsertJobScheduler(
       jobId,
       {
+        startDate: startTime !== undefined ? startTime.getTime() : undefined,
+        endDate: endTime !== undefined ? endTime.getTime() : undefined,
         pattern: cronExpr,
         tz: 'Asia/Seoul',
         count: autoRemove ? 1 : 0,

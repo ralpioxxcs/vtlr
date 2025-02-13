@@ -42,6 +42,8 @@ export class ScheduleService implements OnModuleInit {
       priority = 1;
     } else if (category === ScheduleCategory.routine) {
       priority = 2;
+    } else if (category === ScheduleCategory.task) {
+      priority = 3;
     } else {
       throw new Error('Unsupported schedule category');
     }
@@ -168,6 +170,8 @@ export class ScheduleService implements OnModuleInit {
   async createSchedule(scheduleDto: CreateScheduleDto, qr?: QueryRunner) {
     const repo = this.getRepository(qr);
 
+    this.logger.log(`create schedule: ${JSON.stringify(scheduleDto)}`);
+
     try {
       //  * Schedule
       //   - Task_1
@@ -176,13 +180,18 @@ export class ScheduleService implements OnModuleInit {
       //   - Task_4
       //   - ...
 
-      // 하나의 Schedule 데이터를 생성한다
+      // 하나의 Schedule 데이터를 생성
       const entity = repo.create({
         ...scheduleDto,
       });
       const newSchedule = await repo.save(entity);
 
-      // 하위 여러개의 Task 데이터를 생성한다
+      // Task인 경우, 별도 처리
+      if (scheduleDto.category === ScheduleCategory.task) {
+        // ...
+      }
+
+      // Schedule 하위 Task 데이터를 생성
       const tasks = await this.taskService.createTask(
         newSchedule,
         scheduleDto.task,
@@ -190,6 +199,7 @@ export class ScheduleService implements OnModuleInit {
       );
       newSchedule.tasks = tasks;
 
+      // task별로 각 job을 생성
       for (const task of tasks) {
         await this.jobService.createJob(
           entity.interval,
@@ -197,6 +207,12 @@ export class ScheduleService implements OnModuleInit {
           task,
           this.getPriority(entity.category),
           scheduleDto.removeOnComplete || false,
+          scheduleDto.startTime !== undefined
+            ? new Date(scheduleDto.startTime)
+            : undefined,
+          scheduleDto.endTime !== undefined
+            ? new Date(scheduleDto.endTime)
+            : undefined,
         );
       }
 
@@ -263,6 +279,10 @@ export class ScheduleService implements OnModuleInit {
 
   async addTask(id: string, taskDto: CreateTaskDto, qr: QueryRunner) {
     return null;
+  }
+
+  private handleTaskSchedule() {
+    this.logger.log(`handle task schedule`);
   }
 
   private delay(ms: number): Promise<void> {

@@ -50,6 +50,18 @@ export class ScheduleModel extends BaseModel {
   })
   removeOnComplete: boolean;
 
+  @Column({
+    name: 'start_time',
+    type: 'timestamp with time zone',
+  })
+  startTime: Date;
+
+  @Column({
+    name: 'end_time',
+    type: 'timestamp with time zone',
+  })
+  endTime: Date;
+
   @OneToMany(() => TaskModel, (task) => task.schedule, { cascade: true })
   tasks: TaskModel[];
 }
