@@ -14,6 +14,7 @@ import { TaskService } from 'src/task/task.service';
 import { ScheduleCategory, ScheduleType } from './enum/schedule.enum';
 import { JobService } from 'src/job/job.service';
 import { CreateTaskDto } from 'src/task/dto/task.dto';
+import { TaskModel } from 'src/task/entites/task.entity';
 
 @Injectable()
 export class ScheduleService implements OnModuleInit {
@@ -186,11 +187,6 @@ export class ScheduleService implements OnModuleInit {
       });
       const newSchedule = await repo.save(entity);
 
-      // Task인 경우, 별도 처리
-      if (scheduleDto.category === ScheduleCategory.task) {
-        // ...
-      }
-
       // Schedule 하위 Task 데이터를 생성
       const tasks = await this.taskService.createTask(
         newSchedule,
@@ -199,21 +195,79 @@ export class ScheduleService implements OnModuleInit {
       );
       newSchedule.tasks = tasks;
 
-      // task별로 각 job을 생성
-      for (const task of tasks) {
-        await this.jobService.createJob(
-          entity.interval,
-          entity.id,
-          task,
-          this.getPriority(entity.category),
-          scheduleDto.removeOnComplete || false,
-          scheduleDto.startTime !== undefined
-            ? new Date(scheduleDto.startTime)
-            : undefined,
-          scheduleDto.endTime !== undefined
-            ? new Date(scheduleDto.endTime)
-            : undefined,
+      // 각 task에 해당하는 job 생성
+      if (scheduleDto.category === ScheduleCategory.task) {
+        const adjustCronExpression = this.getPreviousCron(
+          scheduleDto.interval,
+          5,
         );
+
+        // task의 tts 동작은 매 주기마다 현재 subtask의 상태에 따라 tts가 바뀌기때문에
+        // 설정된 주기보다 TTS Job을 미리 진행되도록 한다 (e.g. 5 minutes)
+        await this.jobService.createCronJob<ScheduleModel>({
+          jobId: newSchedule.id,
+          cronExpression: adjustCronExpression,
+          timeZone: 'Asia/Seoul',
+          priority: this.getPriority(entity.category),
+          autoRemove: scheduleDto.removeOnComplete || false,
+          startTime:
+            scheduleDto.startTime !== undefined
+              ? new Date(scheduleDto.startTime)
+              : undefined,
+          endTime:
+            scheduleDto.endTime !== undefined
+              ? new Date(scheduleDto.endTime)
+              : undefined,
+          payload: newSchedule,
+        });
+
+        // 설정된 주기에 맞게 디바이스에 명령이 전송되도록 한다
+        // scheduleID
+        await this.jobService.createCronJob<string>({
+          jobId: newSchedule.id,
+          cronExpression: entity.interval,
+          timeZone: 'Asia/Seoul',
+          priority: this.getPriority(entity.category),
+          autoRemove: scheduleDto.removeOnComplete || false,
+          startTime:
+            scheduleDto.startTime !== undefined
+              ? new Date(scheduleDto.startTime)
+              : undefined,
+          endTime:
+            scheduleDto.endTime !== undefined
+              ? new Date(scheduleDto.endTime)
+              : undefined,
+          payload: newSchedule.id,
+        });
+
+        //
+      } else {
+        for (const task of tasks) {
+          // 음성 생성
+          await this.jobService.createTTSJob({
+            jobId: task.id,
+            voice: 'model_name',
+            text: task.text,
+          });
+
+          // 디바이스에 명령 전송
+          await this.jobService.createCronJob<TaskModel>({
+            jobId: task.id,
+            cronExpression: entity.interval,
+            timeZone: 'Asia/Seoul',
+            priority: this.getPriority(entity.category),
+            autoRemove: scheduleDto.removeOnComplete || false,
+            startTime:
+              scheduleDto.startTime !== undefined
+                ? new Date(scheduleDto.startTime)
+                : undefined,
+            endTime:
+              scheduleDto.endTime !== undefined
+                ? new Date(scheduleDto.endTime)
+                : undefined,
+            payload: task,
+          });
+        }
       }
 
       return newSchedule;
@@ -243,7 +297,7 @@ export class ScheduleService implements OnModuleInit {
       const updatedEntity = this.scheduleRepository.merge(entity, scheduleDto);
       await this.scheduleRepository.save(updatedEntity);
 
-      await this.jobService.createJob(updatedEntity.interval, updatedEntity.id);
+      await this.jobService.updateCronJob(updatedEntity.id, updatedEntity);
 
       return updatedEntity;
     } catch (error) {
@@ -281,11 +335,17 @@ export class ScheduleService implements OnModuleInit {
     return null;
   }
 
-  private handleTaskSchedule() {
-    this.logger.log(`handle task schedule`);
-  }
-
   private delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  private getPreviousCron(
+    cronExpr: string,
+    minutesOffset: number = -5,
+  ): string {
+    const interval = cronParser.parseExpression(cronExpr);
+    const prevDate = new Date(interval.prev().toString()); // 1단계 이전 시간
+    prevDate.setMinutes(prevDate.getMinutes() + minutesOffset);
+    return `${prevDate.getUTCMinutes()} ${prevDate.getUTCHours()} * * *`;
   }
 }

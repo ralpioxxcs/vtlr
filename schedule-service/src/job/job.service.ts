@@ -3,6 +3,23 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Job, Queue } from 'bullmq';
 import { JOB_QUEUE_NAME, TTS_QUEUE_NAME } from 'src/common/const/queue.constg';
 
+export type TTSJob = {
+  jobId: string;
+  voice: string;
+  text: string;
+};
+
+export type CronJob<T> = {
+  jobId: string;
+  cronExpression: string;
+  timeZone: string;
+  priority?: number;
+  autoRemove?: boolean;
+  startTime?: Date;
+  endTime?: Date;
+  payload: T;
+};
+
 @Injectable()
 export class JobService {
   private readonly logger = new Logger(JobService.name);
@@ -12,43 +29,26 @@ export class JobService {
     @InjectQueue(TTS_QUEUE_NAME) private readonly ttsQueue: Queue,
   ) {}
 
-  async createJob(
-    cronExpr: string,
-    jobId: string,
-    payload?: any,
-    priority?: number,
-    autoRemove?: boolean,
-    startTime?: Date,
-    endTime?: Date,
-  ): Promise<Job> {
-    const ttsJobName = `tts_job_${new Date().getTime()}`;
-
-    const ttsJobResult = await this.ttsQueue.add(ttsJobName, {
-      id: payload.id,
-      voice: 'model',
-      text: payload.text,
-    });
-    this.logger.log(`tts job added (${ttsJobResult.id}) successfully`);
-
-    //---------------------------------------------------------------------
+  async createCronJob<T>(job: CronJob<T>): Promise<Job> {
     const jobName = `vtlr-service_${new Date().getTime()}`;
 
     // BullMQ에 task의 payload를 담은 repeatable job을 생성한다
     const result = await this.cronQueue.upsertJobScheduler(
-      jobId,
+      job.jobId,
       {
-        startDate: startTime !== undefined ? startTime.getTime() : undefined,
-        endDate: endTime !== undefined ? endTime.getTime() : undefined,
-        pattern: cronExpr,
-        tz: 'Asia/Seoul',
-        count: autoRemove ? 1 : 0,
+        startDate:
+          job.startTime !== undefined ? job.startTime.getTime() : undefined,
+        endDate: job.endTime !== undefined ? job.endTime.getTime() : undefined,
+        pattern: job.cronExpression,
+        tz: job.timeZone || 'Asia/Seoul',
+        count: job.autoRemove ? 1 : 0,
       },
       {
         name: jobName,
-        data: payload,
+        data: job.payload,
         opts: {
           attempts: 0,
-          priority: priority || 0,
+          priority: job.priority || 0,
           removeOnComplete: true,
           removeOnFail: true,
         },
@@ -60,12 +60,12 @@ export class JobService {
     return result;
   }
 
-  async updateJob(jobId: string, payload: object): Promise<Job> {
+  async updateCronJob(jobId: string, data: any): Promise<Job> {
     const result = await this.cronQueue.upsertJobScheduler(
       jobId,
       {},
       {
-        data: payload,
+        data,
       },
     );
 
@@ -74,7 +74,7 @@ export class JobService {
     return result;
   }
 
-  async deleteJob(jobId: string): Promise<boolean> {
+  async deleteCronJob(jobId: string): Promise<boolean> {
     const result = await this.cronQueue.removeJobScheduler(jobId);
 
     //this.cronQueue.drain();
@@ -84,5 +84,15 @@ export class JobService {
     );
 
     return result;
+  }
+
+  async createTTSJob(job: TTSJob) {
+    const ttsJobName = `tts_job_${new Date().getTime()}`;
+    const ttsJobResult = await this.ttsQueue.add(ttsJobName, {
+      id: job.jobId,
+      voice: job.voice,
+      text: job.text,
+    });
+    this.logger.log(`tts job added (${ttsJobResult.id}) successfully`);
   }
 }
