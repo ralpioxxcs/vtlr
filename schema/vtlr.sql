@@ -18,6 +18,8 @@ CREATE TABLE vtlr.schedules (
     interval VARCHAR(64) NOT NULL,
     active BOOLEAN NOT NULL,
     remove_on_complete BOOLEAN DEFAULT FALSE,
+    start_time TIMESTAMPTZ,
+    end_time TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
