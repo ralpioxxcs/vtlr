@@ -3,13 +3,18 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Job, Queue } from 'bullmq';
 import { JOB_QUEUE_NAME, TTS_QUEUE_NAME } from 'src/common/const/queue.constg';
 
+export type JobPayload = {
+  type: string;
+  data: object;
+};
+
 export type TTSJob = {
   jobId: string;
   voice: string;
   text: string;
 };
 
-export type CronJob<T> = {
+export type CronJob = {
   jobId: string;
   cronExpression: string;
   timeZone: string;
@@ -17,7 +22,8 @@ export type CronJob<T> = {
   autoRemove?: boolean;
   startTime?: Date;
   endTime?: Date;
-  payload: T;
+  prevMinutes?: number;
+  payload: JobPayload;
 };
 
 @Injectable()
@@ -29,7 +35,9 @@ export class JobService {
     @InjectQueue(TTS_QUEUE_NAME) private readonly ttsQueue: Queue,
   ) {}
 
-  async createCronJob<T>(job: CronJob<T>): Promise<Job> {
+  async createCronJob(job: CronJob): Promise<Job> {
+    this.logger.debug(`creating cron job (jobId: ${job.jobId})`);
+
     const jobName = `vtlr-service_${new Date().getTime()}`;
 
     // BullMQ에 task의 payload를 담은 repeatable job을 생성한다
@@ -42,20 +50,21 @@ export class JobService {
         pattern: job.cronExpression,
         tz: job.timeZone || 'Asia/Seoul',
         count: job.autoRemove ? 1 : 0,
+        prevMillis: job.prevMinutes ? job.prevMinutes * 60000 : 0,
       },
       {
         name: jobName,
-        data: job.payload,
         opts: {
           attempts: 0,
           priority: job.priority || 0,
           removeOnComplete: true,
           removeOnFail: true,
         },
+        data: job.payload,
       },
     );
 
-    this.logger.log(`create the job successfully (name: ${jobName})`);
+    this.logger.debug(`create the job successfully (jobId: ${job.jobId})`);
 
     return result;
   }
@@ -87,12 +96,14 @@ export class JobService {
   }
 
   async createTTSJob(job: TTSJob) {
+    this.logger.debug(`create tts job (jobId: ${job.jobId})`);
+
     const ttsJobName = `tts_job_${new Date().getTime()}`;
     const ttsJobResult = await this.ttsQueue.add(ttsJobName, {
       id: job.jobId,
       voice: job.voice,
       text: job.text,
     });
-    this.logger.log(`tts job added (${ttsJobResult.id}) successfully`);
+    this.logger.debug(`tts job added successfully (jobId: ${job.jobId})`);
   }
 }

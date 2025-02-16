@@ -1,8 +1,13 @@
 import { HttpService } from '@nestjs/axios';
-import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
+import {
+  InjectQueue,
+  OnWorkerEvent,
+  Processor,
+  WorkerHost,
+} from '@nestjs/bullmq';
+import { Inject, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Job } from 'bullmq';
+import { Job, Queue } from 'bullmq';
 import { firstValueFrom } from 'rxjs';
 import { JOB_QUEUE_NAME, TTS_QUEUE_NAME } from 'src/common/const/queue.constg';
 import { TaskModel } from 'src/task/entites/task.entity';
@@ -10,6 +15,8 @@ import { UserService } from 'src/user/user.service';
 import { ScheduleModel } from './entities/schedule.entity';
 import { Repository } from 'typeorm';
 import { ScheduleType } from './enum/schedule.enum';
+import { TaskStatus } from 'src/task/enum/task.enum';
+import { JobPayload, JobService, TTSJob } from 'src/job/job.service';
 
 type DeviceRequestPayload = {
   deviceIds: string[];
@@ -30,6 +37,8 @@ export class CronProcessor extends WorkerHost {
     private readonly userService: UserService,
     @InjectRepository(ScheduleModel)
     private readonly scheduleRepository: Repository<ScheduleModel>,
+    //private readonly taskRepository: Repository<TaskModel>,
+    private readonly jobService: JobService,
   ) {
     super();
   }
@@ -84,15 +93,121 @@ export class CronProcessor extends WorkerHost {
 
   @OnWorkerEvent('progress')
   onProgress(job: Job, progress: number | object) {
-    this.logger.log(`job ${job.id} - cron pattern: ${job.opts.repeat.pattern}`);
-    this.logger.log(
-      `job ${job.id} - reported progress: ${JSON.stringify(progress)}`,
-    );
+    this.logger.log(`job ${job.id} - cron : ${job.opts.repeat.pattern}`);
+    this.logger.log(`job ${job.id} - progress: ${JSON.stringify(progress)}`);
   }
 
   async process(job: Job<any, any, string>): Promise<any> {
-    this.logger.log(`job started (name: ${job.name})`);
-    await this.handleTask(job.data);
+    this.logger.log(`job started (id: ${job.id})`);
+
+    const payload = job.data as JobPayload;
+
+    if (payload.type === 'schedule_prep') {
+      await this.handleSchedulePrep(job.data.data);
+    } else if (payload.type === 'schedule_cmd') {
+      await this.handleScheduleCommand(job.data.data);
+    } else if (payload.type === 'task_cmd') {
+      await this.handleTask(job.data.data);
+    } else {
+      this.logger.error(`unsupported job type`);
+    }
+  }
+
+  private async handleSchedulePrep(scheduleData: ScheduleModel) {
+    this.logger.debug(`handleSchedulePrep()`);
+
+    // 모든 task를 가져온다
+    const schedule = await this.scheduleRepository.findOne({
+      where: {
+        id: scheduleData.id,
+      },
+      relations: ['tasks'],
+    });
+    const tasks = schedule.tasks;
+    this.logger.debug(`current task: ${JSON.stringify(tasks)}`);
+
+    const ttsJob: TTSJob = {
+      jobId: schedule.id,
+      voice: 'model',
+      text: '',
+    };
+
+    // 모든 task가 완료된 경우
+    if (tasks.every((item) => item.status === TaskStatus.completed)) {
+      this.logger.log(`all task is done (id: ${scheduleData.id})`);
+      ttsJob.text = `${schedule.title}에 해당하는 모든 할일이 완료되었습니다. 수고하셨습니다.`;
+
+      // 스케줄 비활성화
+      schedule.active = false;
+
+      await this.scheduleRepository.save(schedule);
+
+      // 모든 task가 완료되지 않은 경우
+    } else {
+      ttsJob.text = `${schedule.title}에 해당하는 남은 할일을 알려드립니다.`;
+      for (const task of tasks) {
+        if (task.status !== TaskStatus.completed) {
+          ttsJob.text += `${task.title},`;
+        }
+      }
+      ttsJob.text += `입니다.`;
+      if (scheduleData.endTime) {
+        const now = new Date().getTime();
+        const target = new Date(scheduleData.endTime).getTime();
+
+        let diffInMillis = target - now;
+
+        if (diffInMillis > 0) {
+          const hours = Math.floor(diffInMillis / (1000 * 60 * 60));
+          const minutes = Math.floor(
+            (diffInMillis % (1000 * 60 * 60)) / (1000 * 60),
+          );
+          const seconds = Math.floor((diffInMillis % (1000 * 60)) / 1000);
+          this.logger.debug(
+            `hours: ${hours}, minutes: ${minutes}, seconds: ${seconds}`,
+          );
+
+          const remainTimeText = hours
+            ? hours + '시간'
+            : '' + minutes
+              ? minutes + '분'
+              : '' + seconds
+                ? seconds + '초'
+                : '';
+
+          ttsJob.text += `종료까지 남은시간은 ${remainTimeText} 입니다.`;
+          if (hours <= 0 && minutes < 30) {
+            ttsJob.text += `서두르세요!`;
+          }
+        }
+      }
+    }
+
+    await this.jobService.createTTSJob(ttsJob);
+  }
+
+  private async handleScheduleCommand(scheduleData: ScheduleModel) {
+    this.logger.debug(`handleScheduleCommand()`);
+
+    // FIXME: 유저정보를 따로 관리
+    const user = await this.userService.getUserByRole('admin');
+
+    // 현재 task가 속한 schedule entity의 status를 체크
+    const schedule = await this.scheduleRepository.findOne({
+      where: {
+        id: scheduleData.id,
+      },
+      select: {
+        active: true,
+      },
+    });
+
+    if (!schedule.active) {
+      this.logger.log(`schedule (${scheduleData.id}) not active, skip the task`);
+      return;
+    }
+
+    await this.playToDevice(scheduleData.id, user.id);
   }
 
   private async handleTask(task: TaskModel) {
@@ -111,19 +226,21 @@ export class CronProcessor extends WorkerHost {
       return;
     }
 
-    const deviceIds = await this.userService.findAllDeviceIdsByUserId(
-      task.userId,
-    );
+    await this.playToDevice(task.id, task.userId);
+  }
+
+  private async playToDevice(playId: string, userId: string) {
+    const deviceIds = await this.userService.findAllDeviceIdsByUserId(userId);
 
     if (deviceIds.length <= 0) {
-      this.logger.error(`${task.userId} has no devices`);
+      this.logger.error(`${userId} has no devices`);
       return;
     }
-    this.logger.log(`${task.userId} has ${deviceIds.length} has devices`);
+    this.logger.log(`${userId} has ${deviceIds.length} has devices`);
 
     const URL = `${process.env.CHROMECAST_SERVICE_HOST}/v1.0/chromecast/device/play`;
     const payload: DeviceRequestPayload = {
-      playId: task.id,
+      playId,
       deviceIds: deviceIds,
     };
 

@@ -7,12 +7,14 @@ import { CronProcessor, TTSProcessor } from 'src/schedule/processor.service';
 import { TaskController } from './task.controller';
 import { UserModule } from 'src/user/user.module';
 import { ScheduleModel } from 'src/schedule/entities/schedule.entity';
+import { JobModule } from 'src/job/job.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([TaskModel, ScheduleModel]),
     HttpModule,
     UserModule,
+    JobModule
   ],
   controllers: [TaskController],
   providers: [TaskService, CronProcessor, TTSProcessor],
