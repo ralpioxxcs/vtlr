@@ -132,17 +132,12 @@ export class CronProcessor extends WorkerHost {
       text: '',
     };
 
-    // 모든 task가 완료된 경우
     if (tasks.every((item) => item.status === TaskStatus.completed)) {
+      // 모든 task가 완료된 경우
       this.logger.log(`all task is done (id: ${scheduleData.id})`);
       ttsJob.text = `${schedule.title}에 해당하는 모든 할일이 완료되었습니다. 수고하셨습니다.`;
-
-      // 스케줄 비활성화
-      schedule.active = false;
-      await this.scheduleRepository.save(schedule);
-
-      // 모든 task가 완료되지 않은 경우
     } else {
+      // 모든 task가 완료되지 않은 경우
       ttsJob.text = `${schedule.title}에 해당하는 남은 할일을 알려드립니다.`;
       for (const task of tasks) {
         if (task.status !== TaskStatus.completed) {

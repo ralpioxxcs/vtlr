@@ -1,6 +1,6 @@
 import boto3
 from botocore import endpoint
-from botocore.exceptions import NoCredentialsError
+from botocore.exceptions import ClientError, NoCredentialsError
 from botocore.session import PartialCredentialsError
 
 import pychromecast
@@ -12,6 +12,8 @@ import threading
 from dotenv import load_dotenv
 import os
 
+from urllib.parse import urlparse, urlunparse
+
 load_dotenv()
 
 storage_host = os.getenv('STORAGE_HOST')
@@ -20,6 +22,11 @@ storage_bucket_name = os.getenv('STORAGE_BUCKET_NAME')
 storage_access_key = os.getenv('STORAGE_ACCESS_KEY')
 storage_secret_key = os.getenv('STORAGE_SECRET_KEY')
 
+def replace_host(url, new_host): 
+    parsed_url = urlparse(url)
+    new_netloc = new_host + (":" + str(parsed_url.port) if parsed_url.port else "")
+    new_url = urlunparse(parsed_url._replace(netloc=new_netloc))
+    return new_url
 
 def generate_presigned_url(bucket_name,
                            object_name,
@@ -31,28 +38,38 @@ def generate_presigned_url(bucket_name,
       aws_access_key_id=storage_access_key,
       aws_secret_access_key=storage_secret_key,
       use_ssl=False)
+  print(f'found object (bucket: {bucket_name}, object: {object_name})')
 
   try:
+    s3_client.head_object(Bucket=bucket_name, Key=object_name)
+
     if method.lower() == "get":
-      response = s3_client.generate_presigned_url('get_object',
-                                                  Params={
-                                                      'Bucket': bucket_name,
-                                                      'Key': object_name
-                                                  },
-                                                  ExpiresIn=expiration)
+      url = s3_client.generate_presigned_url('get_object',
+                                             Params={
+                                                 'Bucket': bucket_name,
+                                                 'Key': object_name
+                                             },
+                                             ExpiresIn=expiration)
     elif method.lower() == "put":
-      response = s3_client.generate_presigned_url('put_object',
-                                                  Params={
-                                                      'Bucket': bucket_name,
-                                                      'Key': object_name
-                                                  },
-                                                  ExpiresIn=expiration)
+      url = s3_client.generate_presigned_url('put_object',
+                                             Params={
+                                                 'Bucket': bucket_name,
+                                                 'Key': object_name
+                                             },
+                                             ExpiresIn=expiration)
     else:
       raise ValueError("Invalid method. Use 'get' or 'put'.")
-    return response
+    return url
   except NoCredentialsError:
     print("AWS credentials not found.")
     return None
+  except ClientError as e:
+    if e.response["Error"]["Code"] == "404":
+      print("Error: Object does not exist")
+      return None
+    else:
+      print(f"Unexpected error: {e}")
+      return None
   except Exception as e:
     print(f"Error generating presigned URL: {e}")
     return None
@@ -121,8 +138,12 @@ def commandToDevice(name: str, ip: str, volume: int, playId: str):
   object_name = os.path.join(playId, 'tts.wav')
 
   url = generate_presigned_url(bucket_name, object_name)
+  if url == None:
+    print('object not found!')
+    return
+  print(f'get presignedURL: {url}')
 
-  print('url: ', url)
+  #updated_url = replace_host(url, '192.168.7.3')
 
   cast.set_volume(volume)
 
@@ -137,7 +158,7 @@ def commandToDevice(name: str, ip: str, volume: int, playId: str):
   #
   # Play media file
   #
-  mediaController.play_media(url,
+  mediaController.play_media(str(url),
                              'audio/wav',
                              stream_type=pychromecast.STREAM_TYPE_BUFFERED)
   mediaController.block_until_active()
