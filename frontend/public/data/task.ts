@@ -12,8 +12,8 @@ export const initialSchedules: Schedule[] = [
     interval: "0 5 * * *",
     active: true,
     removeOnComplete: true,
-    startDate: "2025-02-06",
-    endDate: "2025-03-16",
+    startDate: "2025-02-06T12:17:59.469Z",
+    endDate: "2025-02-010T18:00:00.469Z",
     tasks: [
       {
         id: "255cf351-bbc5-4394-9dbd-5ac89d1407c7",
@@ -54,8 +54,8 @@ export const initialSchedules: Schedule[] = [
     interval: "0 1 * * *",
     active: true,
     removeOnComplete: true,
-    startDate: "2025-02-10",
-    endDate: "2025-03-17",
+    startDate: "2025-02-12T13:00:00.469Z",
+    endDate: "2025-02-28T15:00:00.469Z",
     tasks: [
       {
         id: "d914f0af-5769-43dd-8177-acf7735a384d",

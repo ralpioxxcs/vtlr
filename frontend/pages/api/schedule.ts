@@ -25,7 +25,6 @@ export async function getScheduleList(
 
   try {
     const response = await fetch(url);
-    console.log(response);
     const json = await response.json();
     return json;
   } catch (err) {
