@@ -139,7 +139,6 @@ export class CronProcessor extends WorkerHost {
 
       // 스케줄 비활성화
       schedule.active = false;
-
       await this.scheduleRepository.save(schedule);
 
       // 모든 task가 완료되지 않은 경우
@@ -197,14 +196,20 @@ export class CronProcessor extends WorkerHost {
       where: {
         id: scheduleData.id,
       },
-      select: {
-        active: true,
-      },
+      relations: ['tasks'],
     });
 
     if (!schedule.active) {
-      this.logger.log(`schedule (${scheduleData.id}) not active, skip the task`);
+      this.logger.log(
+        `schedule (${scheduleData.id}) not active, skip the task`,
+      );
       return;
+    }
+
+    if (schedule.tasks.every((item) => item.status === TaskStatus.completed)) {
+      // 스케줄 비활성화
+      schedule.active = false;
+      await this.scheduleRepository.save(schedule);
     }
 
     await this.playToDevice(scheduleData.id, user.id);
