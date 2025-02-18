@@ -1,30 +1,8 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { Job, Queue } from 'bullmq';
-import { JOB_QUEUE_NAME, TTS_QUEUE_NAME } from 'src/common/const/queue.constg';
-
-export type JobPayload = {
-  type: string;
-  data: object;
-};
-
-export type TTSJob = {
-  jobId: string;
-  voice: string;
-  text: string;
-};
-
-export type CronJob = {
-  jobId: string;
-  cronExpression: string;
-  timeZone: string;
-  priority?: number;
-  autoRemove?: boolean;
-  startTime?: Date;
-  endTime?: Date;
-  prevMinutes?: number;
-  payload: JobPayload;
-};
+import { JOB_QUEUE_NAME, TTS_QUEUE_NAME } from 'src/common/const/queue.const';
+import { CronJob, TTSJob } from './type/job-type';
 
 @Injectable()
 export class JobService {
@@ -50,7 +28,6 @@ export class JobService {
         pattern: job.cronExpression,
         tz: job.timeZone || 'Asia/Seoul',
         count: job.autoRemove ? 1 : 0,
-        prevMillis: job.prevMinutes ? job.prevMinutes * 60000 : 0,
       },
       {
         name: jobName,
@@ -101,9 +78,9 @@ export class JobService {
     const ttsJobName = `tts_job_${new Date().getTime()}`;
     const ttsJobResult = await this.ttsQueue.add(ttsJobName, {
       id: job.jobId,
-      voice: job.voice,
       text: job.text,
     });
+
     this.logger.debug(`tts job added successfully (jobId: ${job.jobId})`);
   }
 }

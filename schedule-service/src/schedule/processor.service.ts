@@ -1,22 +1,19 @@
 import { HttpService } from '@nestjs/axios';
-import {
-  InjectQueue,
-  OnWorkerEvent,
-  Processor,
-  WorkerHost,
-} from '@nestjs/bullmq';
-import { Inject, Logger } from '@nestjs/common';
+import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
+import { Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Job, Queue } from 'bullmq';
+import { Job } from 'bullmq';
 import { firstValueFrom } from 'rxjs';
-import { JOB_QUEUE_NAME, TTS_QUEUE_NAME } from 'src/common/const/queue.constg';
+import { JOB_QUEUE_NAME, TTS_QUEUE_NAME } from 'src/common/const/queue.const';
 import { TaskModel } from 'src/task/entites/task.entity';
 import { UserService } from 'src/user/user.service';
 import { ScheduleModel } from './entities/schedule.entity';
 import { Repository } from 'typeorm';
 import { ScheduleType } from './enum/schedule.enum';
 import { TaskStatus } from 'src/task/enum/task.enum';
-import { JobPayload, JobService, TTSJob } from 'src/job/job.service';
+import { JobPayload, SchedulePayload, TTSJob } from 'src/job/type/job-type';
+import { JOB_PAYLOAD } from 'src/job/const/job-type.const';
+import { TTSService } from 'src/tts-api/tts.service';
 
 type DeviceRequestPayload = {
   deviceIds: string[];
@@ -33,12 +30,11 @@ export class CronProcessor extends WorkerHost {
   private readonly logger = new Logger(CronProcessor.name);
 
   constructor(
-    private readonly httpService: HttpService,
-    private readonly userService: UserService,
     @InjectRepository(ScheduleModel)
     private readonly scheduleRepository: Repository<ScheduleModel>,
-    //private readonly taskRepository: Repository<TaskModel>,
-    private readonly jobService: JobService,
+    private readonly httpService: HttpService,
+    private readonly userService: UserService,
+    private readonly ttsService: TTSService,
   ) {
     super();
   }
@@ -102,18 +98,16 @@ export class CronProcessor extends WorkerHost {
 
     const payload = job.data as JobPayload;
 
-    if (payload.type === 'schedule_prep') {
-      await this.handleSchedulePrep(job.data.data);
-    } else if (payload.type === 'schedule_cmd') {
-      await this.handleScheduleCommand(job.data.data);
-    } else if (payload.type === 'task_cmd') {
+    if (payload.type === JOB_PAYLOAD.SCHEDULE) {
+      await this.handleSchedule(job.data.data);
+    } else if (payload.type === JOB_PAYLOAD.TASK) {
       await this.handleTask(job.data.data);
     } else {
       this.logger.error(`unsupported job type`);
     }
   }
 
-  private async handleSchedulePrep(scheduleData: ScheduleModel) {
+  private async handleSchedule(scheduleData: SchedulePayload) {
     this.logger.debug(`handleSchedulePrep()`);
 
     // 모든 task를 가져온다
@@ -123,12 +117,19 @@ export class CronProcessor extends WorkerHost {
       },
       relations: ['tasks'],
     });
+
+    if (!schedule.active) {
+      this.logger.log(
+        `schedule (${scheduleData.id}) not active, skip the task`,
+      );
+      return;
+    }
+
     const tasks = schedule.tasks;
     this.logger.debug(`current task: ${JSON.stringify(tasks)}`);
 
     const ttsJob: TTSJob = {
       jobId: schedule.id,
-      voice: 'model',
       text: '',
     };
 
@@ -136,6 +137,9 @@ export class CronProcessor extends WorkerHost {
       // 모든 task가 완료된 경우
       this.logger.log(`all task is done (id: ${scheduleData.id})`);
       ttsJob.text = `${schedule.title}에 해당하는 모든 할일이 완료되었습니다. 수고하셨습니다.`;
+
+      schedule.active = false;
+      await this.scheduleRepository.save(schedule);
     } else {
       // 모든 task가 완료되지 않은 경우
       ttsJob.text = `${schedule.title}에 해당하는 남은 할일을 알려드립니다.`;
@@ -177,37 +181,20 @@ export class CronProcessor extends WorkerHost {
       }
     }
 
-    await this.jobService.createTTSJob(ttsJob);
-  }
+    try {
+      const response = await this.ttsService.createTTS({
+        playId: ttsJob.jobId,
+        text: ttsJob.text,
+      });
+      this.logger.debug(`create tts: ${JSON.stringify(response)}`);
 
-  private async handleScheduleCommand(scheduleData: ScheduleModel) {
-    this.logger.debug(`handleScheduleCommand()`);
+      // FIXME: 유저정보를 따로 관리
+      const user = await this.userService.getUserByRole('admin');
 
-    // FIXME: 유저정보를 따로 관리
-    const user = await this.userService.getUserByRole('admin');
-
-    // 현재 task가 속한 schedule entity의 status를 체크
-    const schedule = await this.scheduleRepository.findOne({
-      where: {
-        id: scheduleData.id,
-      },
-      relations: ['tasks'],
-    });
-
-    if (!schedule.active) {
-      this.logger.log(
-        `schedule (${scheduleData.id}) not active, skip the task`,
-      );
-      return;
+      await this.playToDevice(scheduleData.id, user.id);
+    } catch (error) {
+      this.logger.error(`error occurred in creating tts`);
     }
-
-    if (schedule.tasks.every((item) => item.status === TaskStatus.completed)) {
-      // 스케줄 비활성화
-      schedule.active = false;
-      await this.scheduleRepository.save(schedule);
-    }
-
-    await this.playToDevice(scheduleData.id, user.id);
   }
 
   private async handleTask(task: TaskModel) {

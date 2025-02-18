@@ -8,13 +8,15 @@ import { TaskController } from './task.controller';
 import { UserModule } from 'src/user/user.module';
 import { ScheduleModel } from 'src/schedule/entities/schedule.entity';
 import { JobModule } from 'src/job/job.module';
+import { TTSModule } from 'src/tts-api/tts.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([TaskModel, ScheduleModel]),
     HttpModule,
     UserModule,
-    JobModule
+    JobModule,
+    TTSModule
   ],
   controllers: [TaskController],
   providers: [TaskService, CronProcessor, TTSProcessor],

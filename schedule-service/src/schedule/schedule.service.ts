@@ -15,6 +15,7 @@ import { ScheduleCategory, ScheduleType } from './enum/schedule.enum';
 import { JobService } from 'src/job/job.service';
 import { CreateTaskDto } from 'src/task/dto/task.dto';
 import { TaskModel } from 'src/task/entites/task.entity';
+import { JOB_PAYLOAD } from 'src/job/const/job-type.const';
 
 @Injectable()
 export class ScheduleService implements OnModuleInit {
@@ -208,40 +209,8 @@ export class ScheduleService implements OnModuleInit {
 
       // 각 task에 해당하는 job 생성
       if (scheduleDto.category === ScheduleCategory.task) {
-        const adjustMinute = 1;
-
-        let adjustStartTime;
-        let adjustEndTime;
-        if (scheduleDto.startTime) {
-          const date = new Date(scheduleDto.startTime);
-          adjustStartTime = date.setMinutes(date.getMinutes() - adjustMinute);
-        }
-        if (scheduleDto.endTime) {
-          const date = new Date(scheduleDto.endTime);
-          adjustEndTime = date.setMinutes(date.getMinutes() - adjustMinute);
-        }
-
-        // task의 tts 동작은 매 주기마다 현재 subtask의 상태에 따라 tts가 바뀌기때문에
-        // 설정된 주기보다 TTS Job을 미리 진행되도록 한다 (e.g. 5 minutes)
-        await this.jobService.createCronJob({
-          jobId: newSchedule.id + new Date().getTime(),
-          cronExpression: newSchedule.interval,
-          timeZone: 'Asia/Seoul',
-          priority: this.getPriority(entity.category),
-          autoRemove: scheduleDto.removeOnComplete || false,
-          startTime:
-            scheduleDto.startTime !== undefined ? adjustStartTime : undefined,
-          endTime:
-            scheduleDto.startTime !== undefined ? adjustEndTime : undefined,
-          prevMinutes: adjustMinute,
-          payload: {
-            type: 'schedule_prep',
-            data: newSchedule,
-          },
-        });
-
-        // 설정된 주기에 맞게 디바이스에 명령이 전송되도록 한다
-        // scheduleID
+        // task 동작은 매 주기마다
+        // 현재 subtask의 상태에 따라 TTS 음성 메시지가 바뀔 수 있음
         await this.jobService.createCronJob({
           jobId: newSchedule.id,
           cronExpression: newSchedule.interval,
@@ -256,9 +225,8 @@ export class ScheduleService implements OnModuleInit {
             newSchedule.endTime !== undefined
               ? new Date(newSchedule.endTime)
               : undefined,
-          prevMinutes: 0,
           payload: {
-            type: 'schedule_cmd',
+            type: JOB_PAYLOAD.SCHEDULE,
             data: newSchedule,
           },
         });
@@ -267,7 +235,6 @@ export class ScheduleService implements OnModuleInit {
           // 음성 생성
           await this.jobService.createTTSJob({
             jobId: task.id,
-            voice: 'model_name',
             text: task.text,
           });
 
@@ -286,9 +253,8 @@ export class ScheduleService implements OnModuleInit {
               newSchedule.endTime !== undefined
                 ? new Date(newSchedule.endTime)
                 : undefined,
-            prevMinutes: 0,
             payload: {
-              type: 'task_cmd',
+              type: JOB_PAYLOAD.TASK,
               data: task,
             },
           });
