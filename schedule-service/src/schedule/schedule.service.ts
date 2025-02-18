@@ -272,6 +272,19 @@ export class ScheduleService implements OnModuleInit {
     }
   }
 
+  async deleteTask(taskId: string, qr: QueryRunner) {
+    const repo = this.getRepository(qr);
+
+    this.logger.log(`delete task to schedule (taskId: ${taskId})`);
+
+    try {
+      await this.taskService.deleteTask(taskId);
+    } catch (error) {
+      this.logger.error(`Error occurred deleting schedule (err: ${error})`);
+      throw error;
+    }
+  }
+
   private delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
