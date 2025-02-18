@@ -34,7 +34,7 @@ export class TaskService {
     });
   }
 
-  async createTask(
+  async createTasks(
     parentSchedule: ScheduleModel,
     taskDtos: CreateTaskDto[],
     qr?: QueryRunner,

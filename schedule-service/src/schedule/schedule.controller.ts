@@ -58,13 +58,13 @@ export class ScheduleController {
     return this.scheduleService.updateSchedule(scheduleId, updateSchedule);
   }
 
-  @Post('/:schduleId/task')
+  @Post('/:scheduleId/task')
   @UseInterceptors(TxInterceptor)
   async addTask(
     @Param('scheduleId') scheduleId: string,
     @Body() createTask: CreateTaskDto,
     @QueryRunner() qr: QR,
   ) {
-    return this.scheduleService.addTask(scheduleId, createTask, qr);
+    return this.scheduleService.appendTask(scheduleId, createTask, qr);
   }
 }

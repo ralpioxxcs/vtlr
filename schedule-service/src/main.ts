@@ -6,6 +6,7 @@ import { ScheduleModel } from './schedule/entities/schedule.entity';
 import { SwaggerTheme, SwaggerThemeNameEnum } from 'swagger-themes';
 import { TaskModel } from './task/entites/task.entity';
 import { UserModel } from './user/entities/user.entity';
+import { HttpExceptionFilter } from './common/exceptions/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -16,6 +17,7 @@ async function bootstrap() {
     credentials: true,
   });
   app.setGlobalPrefix('v1.0/scheduler', {});
+  app.useGlobalFilters(new HttpExceptionFilter());
 
   const config = new DocumentBuilder()
     .setTitle('vtlr')
