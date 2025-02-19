@@ -87,7 +87,7 @@ export class ScheduleService implements OnModuleInit {
       });
 
       for (const schedule of initSchedules) {
-        await this.processSchedule(schedule, schedule.tasks, qr);
+        await this.processSchedule(schedule, schedule.tasks);
         await this.delay(100); // Job Name 생성시 타임스탬프 중복 방지를 위한 딜레이
       }
 
@@ -173,12 +173,15 @@ export class ScheduleService implements OnModuleInit {
       const schedule = repo.create(scheduleDto);
       const scheduleEntity = await repo.save(schedule);
 
-      // insert task into schedule
-      schedule.tasks = await this.processSchedule(
-        scheduleEntity,
+      // Schedule 하위 Task 데이터를 생성
+      const tasks = await this.taskService.createTasks(
+        schedule,
         scheduleDto.task,
         qr,
       );
+
+      // insert task into schedule
+      schedule.tasks = await this.processSchedule(scheduleEntity, tasks);
 
       return await repo.save(schedule);
     } catch (error) {
@@ -303,12 +306,8 @@ export class ScheduleService implements OnModuleInit {
 
   private async processSchedule(
     schedule: ScheduleModel,
-    taskDto: CreateTaskDto[],
-    qr: QueryRunner,
+    tasks: TaskModel[],
   ): Promise<TaskModel[]> {
-    // Schedule 하위 Task 데이터를 생성
-    const tasks = await this.taskService.createTasks(schedule, taskDto, qr);
-
     // 각 task에 해당하는 job 생성
     if (schedule.category === ScheduleCategory.task) {
       // task 동작은 매 주기마다
