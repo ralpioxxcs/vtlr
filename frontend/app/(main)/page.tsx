@@ -11,7 +11,7 @@ export default function Home() {
     queryKey: [queryId],
     queryFn: async () => {
       const response = await getScheduleList();
-      return response.filter((item) => item.category !== "on_time");
+      return response.filter((item) => item.category !== "on_time" && item.category !== "task");
     },
   });
 

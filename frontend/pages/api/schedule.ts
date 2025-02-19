@@ -107,3 +107,36 @@ export async function updateSchedule(id: string, patchData: any) {
     throw err;
   }
 }
+
+export async function deleteTask(id: string) {
+  const url = `${baseURL}/v1.0/scheduler/task/${id}`;
+
+  try {
+    await fetch(url, {
+      method: "DELETE",
+    });
+  } catch (err) {
+    console.error(`error is occured (${err})`);
+    throw err;
+  }
+}
+
+export async function updateTask(id: string, patchData: any) {
+  const url = `${baseURL}/v1.0/scheduler/task/${id}`;
+
+  try {
+    const response = await fetch(url, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(patchData),
+    });
+    const json = await response.json();
+    console.log(json);
+    return json;
+  } catch (err) {
+    console.error(`error is occured (${err})`);
+    throw err;
+  }
+}

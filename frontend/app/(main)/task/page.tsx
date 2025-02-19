@@ -18,8 +18,8 @@ import {
 import { MoreVert as MoreVertIcon, Add as AddIcon } from "@mui/icons-material";
 import { Schedule, Task } from "Type";
 import { initialSchedules } from "@/public/data/task";
-import { useQuery } from "@tanstack/react-query";
-import { getScheduleList } from "@/pages/api/schedule";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getScheduleList, updateTask } from "@/pages/api/schedule";
 import { Spinner } from "@nextui-org/react";
 
 export default function Home() {
@@ -27,6 +27,16 @@ export default function Home() {
   const { data, isLoading, isError } = useQuery({
     queryKey: [queryId],
     queryFn: () => getScheduleList("recurring", "task"),
+  });
+
+  const queryClient = useQueryClient();
+  const { mutate: handleTaskCheck } = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      updateTask(id, {
+        status: status === "pending" ? "completed" : "pending",
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryId] }),
+    onError: (error) => console.error("Failed to update task:", error),
   });
 
   const [tasks, setSchedule] = useState<Schedule[]>(initialSchedules);
@@ -134,12 +144,16 @@ export default function Home() {
                   <Typography className="text-lg font-normal overflow-hidden whitespace-nowrap text-ellipsis w-40">
                     {schedule.title}
                   </Typography>
-                  <Typography className="text-xs text-gray-400">
-                    시작일: {new Date(schedule.startTime).toLocaleString() || "없음"}
-                  </Typography>
-                  <Typography className="text-xs text-gray-400">
-                    종료일: {new Date(schedule.endTime).toLocaleString() || "없음"}
-                  </Typography>
+                  {schedule.startTime && (
+                    <Typography className="text-xs text-gray-400">
+                      시작일:{new Date(schedule.startTime).toLocaleString()}
+                    </Typography>
+                  )}
+                  {schedule.endTime && (
+                    <Typography className="text-xs text-gray-400">
+                      종료일: {new Date(schedule.endTime).toLocaleString()}
+                    </Typography>
+                  )}
                 </div>
                 <IconButton onClick={(e) => handleOpenMenu(e, schedule)}>
                   <MoreVertIcon />
@@ -154,7 +168,7 @@ export default function Home() {
                         checked={task.status === "completed"}
                         onClick={(e) => e.stopPropagation()}
                         onChange={() =>
-                          handleSubTaskToggle(schedule.id, task.id)
+                          handleTaskCheck({ id: task.id, status: task.status })
                         }
                       />
                       <ListItemText
