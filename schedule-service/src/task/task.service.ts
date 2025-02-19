@@ -79,6 +79,7 @@ export class TaskService {
         );
       }
       const updatedEntity = this.taskRepository.merge(entity, taskDto);
+      await this.taskRepository.save(updatedEntity);
 
       return updatedEntity;
     } catch (error) {

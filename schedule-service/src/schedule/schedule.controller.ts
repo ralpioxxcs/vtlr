@@ -67,21 +67,4 @@ export class ScheduleController {
   ) {
     return this.scheduleService.appendTask(scheduleId, createTask, qr);
   }
-
-  @Delete('/task/:taskId')
-  @UseInterceptors(TxInterceptor)
-  async deleteTask(@Param('taskId') taskId: string, @QueryRunner() qr: QR) {
-    return this.scheduleService.deleteTask(taskId, qr);
-  }
-
-  // @Patch('/:scheduleId/task/:taskId')
-  // @UseInterceptors(TxInterceptor)
-  // async patchTask(
-  //   @Param('scheduleId') scheduleId: string,
-  //   @Param('taskId') taskId: string,
-  //   @Body() createTask: CreateTaskDto,
-  //   @QueryRunner() qr: QR,
-  // ) {
-  //   //return this.scheduleService.appendTask(scheduleId, createTask, qr);
-  // }
 }

@@ -16,6 +16,7 @@ import { JobService } from 'src/job/job.service';
 import { CreateTaskDto } from 'src/task/dto/task.dto';
 import { JOB_PAYLOAD } from 'src/job/const/job-type.const';
 import { TaskModel } from 'src/task/entites/task.entity';
+import { UpdateTaskDto } from 'src/task/dto/update-task.dto';
 
 @Injectable()
 export class ScheduleService implements OnModuleInit {
@@ -272,10 +273,21 @@ export class ScheduleService implements OnModuleInit {
     }
   }
 
-  async deleteTask(taskId: string, qr: QueryRunner) {
-    const repo = this.getRepository(qr);
-
+  async deleteTask(taskId: string) {
     this.logger.log(`delete task to schedule (taskId: ${taskId})`);
+
+    try {
+      await this.taskService.deleteTask(taskId);
+    } catch (error) {
+      this.logger.error(`Error occurred deleting schedule (err: ${error})`);
+      throw error;
+    }
+  }
+
+  async updateTask(taskId: string, taskDto: UpdateTaskDto) {
+    this.logger.log(
+      `update task (taskId: ${taskId}, taskDto: ${JSON.stringify(taskDto)})`,
+    );
 
     try {
       await this.taskService.deleteTask(taskId);
