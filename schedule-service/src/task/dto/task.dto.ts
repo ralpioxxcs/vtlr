@@ -2,7 +2,7 @@ import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateTaskDto {
   @IsString()
-  @IsOptional()
+  @IsNotEmpty()
   title: string;
 
   @IsString()
@@ -10,10 +10,10 @@ export class CreateTaskDto {
   description: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   text: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   language: string;
 }

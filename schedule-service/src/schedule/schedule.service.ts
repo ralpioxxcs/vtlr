@@ -105,18 +105,37 @@ export class ScheduleService implements OnModuleInit {
 
   async findAllSchedules(type?: string, category?: string) {
     try {
-      const rows = await this.scheduleRepository.find({
-        where: {
-          type: type as ScheduleType,
-          category: category as ScheduleCategory,
-        },
-        relations: ['tasks'],
-      });
-      return rows;
+      const query = this.scheduleRepository
+        .createQueryBuilder('schedule')
+        .leftJoinAndSelect('schedule.tasks', 'task');
+
+      if (type) {
+        query.where('schedule.type = :type', { type });
+      }
+      if (category) {
+        query.andWhere('schedule.category = :category', { category });
+      }
+      const schedules = await query.orderBy('task.createdAt', 'DESC').getMany();
+
+      return schedules;
     } catch (error) {
       this.logger.error(`Error occurred finding schedule (err: ${error})`);
       throw error;
     }
+
+    // try {
+    //   const rows = await this.scheduleRepository.find({
+    //     where: {
+    //       type: type as ScheduleType,
+    //       category: category as ScheduleCategory,
+    //     },
+    //     relations: ['tasks'],
+    //   });
+    //   return rows;
+    // } catch (error) {
+    //   this.logger.error(`Error occurred finding schedule (err: ${error})`);
+    //   throw error;
+    // }
   }
 
   async findScheduleById(id: string) {
