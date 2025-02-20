@@ -11,7 +11,7 @@ DROP TABLE IF EXISTS vtlr.user_devices;
 -- Schedules Table
 CREATE TABLE vtlr.schedules (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    title VARCHAR(64) NOT NULL,
+    title VARCHAR(128) NOT NULL,
     description TEXT,
     type VARCHAR(32) NOT NULL,
     category VARCHAR(64),
@@ -27,7 +27,7 @@ CREATE TABLE vtlr.schedules (
 -- Tasks Table
 CREATE TABLE vtlr.tasks (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    title VARCHAR(64) NOT NULL,
+    title VARCHAR(128) NOT NULL,
     description TEXT NOT NULL,
     status VARCHAR(16) NOT NULL,
     text TEXT NOT NULL,
