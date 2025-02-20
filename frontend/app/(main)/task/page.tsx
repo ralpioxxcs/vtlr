@@ -9,34 +9,37 @@ import {
   Box,
   List,
   ListItemText,
-  Popover,
   MenuItem,
-  Button,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import DeleteIcon from "@mui/icons-material/Delete";
 import { Schedule } from "Type";
-import { initialSchedules } from "@/public/data/task";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createSchedule,
+  deleteSchedule,
   deleteTask,
   getScheduleList,
   updateTask,
 } from "@/pages/api/schedule";
 import {
   DatePicker,
-  Form,
+  Button,
   Input,
   Modal,
   ModalBody,
   ModalContent,
   ModalFooter,
   ModalHeader,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
   Spinner,
 } from "@nextui-org/react";
 import dayjs from "dayjs";
 import { getLocalTimeZone, now } from "@internationalized/date";
+import { Edit } from "@mui/icons-material";
 
 export default function Home() {
   const queryId = "task";
@@ -59,6 +62,19 @@ export default function Home() {
       startDateTime: string;
       endDateTime: string;
     }) => createSchedule("recurring", "task", title, "", "0 * * * *"),
+    onMutate: () => {},
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryId] }),
+    onError: (error) => console.error("Failed to create a schedule:", error),
+    onSettled: () => {
+      //setIsLoading(false);
+      closeModal();
+    },
+  });
+
+  const { mutate: handleDeleteSchedule } = useMutation({
+    mutationFn: ({ id }: { id: string }) => {
+      return deleteSchedule(id);
+    },
     onMutate: () => {},
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryId] }),
     onError: (error) => console.error("Failed to create a schedule:", error),
@@ -95,6 +111,12 @@ export default function Home() {
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
 
+  const [openPopover, setOpenPopover] = useState(null);
+
+  const togglePopover = (id) => {
+    setOpenPopover(openPopover === id ? null : id);
+  };
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState(dayjs());
@@ -128,15 +150,6 @@ export default function Home() {
       ...prev,
       [taskId]: !prev[taskId],
     }));
-  };
-
-  const handleOpenMenu = (
-    event: React.MouseEvent<HTMLElement>,
-    task: Schedule,
-  ) => {
-    event.stopPropagation();
-    setMenuAnchor(event.currentTarget);
-    setMenuTask(task);
   };
 
   if (isLoading) {
@@ -184,9 +197,45 @@ export default function Home() {
                     </Typography>
                   )}
                 </div>
-                <IconButton onClick={(e) => handleOpenMenu(e, schedule)}>
-                  <MoreVertIcon />
-                </IconButton>
+
+                <Popover
+                  isOpen={openPopover === schedule.id}
+                  onOpenChange={() => togglePopover(schedule.id)}
+                  placement="bottom-end"
+                >
+                  <PopoverTrigger>
+                    <Button
+                      isIconOnly
+                      variant="light"
+                      size="sm"
+                      onPress={() => togglePopover(schedule.id)}
+                    >
+                      <MoreVertIcon />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-2 bg-white shadow-md rounded-md">
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        variant="light"
+                        size="sm"
+                        startContent={<Edit size={16} />}
+                        onPress={() => alert("수정 " + schedule.id)}
+                      >
+                        수정
+                      </Button>
+                      <Button
+                        variant="light"
+                        size="sm"
+                        startContent={<DeleteIcon size={16} />}
+                        onPress={() =>
+                          handleDeleteSchedule({ id: schedule.id })
+                        }
+                      >
+                        삭제
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <Collapse in={expanded[schedule.id]} timeout="auto" unmountOnExit>
@@ -224,19 +273,6 @@ export default function Home() {
           </div>
         </div>
       )}
-
-      <Popover
-        open={Boolean(menuAnchor)}
-        anchorEl={menuAnchor}
-        //onClose={handleCloseMenu}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-        transformOrigin={{ vertical: "top", horizontal: "right" }}
-      >
-        <MenuItem onClick={() => handleTaskEdit({ id: "", taskData: {} })}>
-          수정
-        </MenuItem>
-        <MenuItem onClick={() => handleTaskDelete({ id: "" })}>삭제</MenuItem>
-      </Popover>
 
       <Modal
         isOpen={isModalOpen}
