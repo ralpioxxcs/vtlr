@@ -52,6 +52,7 @@ export async function createSchedule(
       active: true,
       task: [
         {
+          title: "title",
           text: command,
           volume: 50,
           language: "ko",

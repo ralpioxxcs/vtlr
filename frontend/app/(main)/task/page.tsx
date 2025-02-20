@@ -11,16 +11,32 @@ import {
   ListItemText,
   Popover,
   MenuItem,
-  TextField,
   Button,
-  Modal,
 } from "@mui/material";
-import { MoreVert as MoreVertIcon, Add as AddIcon } from "@mui/icons-material";
-import { Schedule, Task } from "Type";
+import AddIcon from "@mui/icons-material/Add";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import { Schedule } from "Type";
 import { initialSchedules } from "@/public/data/task";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getScheduleList, updateTask } from "@/pages/api/schedule";
-import { Spinner } from "@nextui-org/react";
+import {
+  createSchedule,
+  deleteTask,
+  getScheduleList,
+  updateTask,
+} from "@/pages/api/schedule";
+import {
+  DatePicker,
+  Form,
+  Input,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  Spinner,
+} from "@nextui-org/react";
+import dayjs from "dayjs";
+import { getLocalTimeZone, now } from "@internationalized/date";
 
 export default function Home() {
   const queryId = "task";
@@ -30,6 +46,28 @@ export default function Home() {
   });
 
   const queryClient = useQueryClient();
+
+  const { mutate: handleCreateSchedule } = useMutation({
+    mutationFn: ({
+      title,
+      description,
+      startDateTime,
+      endDateTime,
+    }: {
+      title: string;
+      description: string;
+      startDateTime: string;
+      endDateTime: string;
+    }) => createSchedule("recurring", "task", title, "", "0 * * * *"),
+    onMutate: () => {},
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryId] }),
+    onError: (error) => console.error("Failed to create a schedule:", error),
+    onSettled: () => {
+      //setIsLoading(false);
+      closeModal();
+    },
+  });
+
   const { mutate: handleTaskCheck } = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       updateTask(id, {
@@ -39,15 +77,51 @@ export default function Home() {
     onError: (error) => console.error("Failed to update task:", error),
   });
 
-  const [tasks, setSchedule] = useState<Schedule[]>(initialSchedules);
+  const { mutate: handleTaskDelete } = useMutation({
+    mutationFn: ({ id }: { id: string }) => deleteTask(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryId] }),
+    onError: (error) => console.error("Failed to delete task:", error),
+  });
+
+  const { mutate: handleTaskEdit } = useMutation({
+    mutationFn: ({ id, taskData }: { id: string; taskData: any }) =>
+      updateTask(id, taskData),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryId] }),
+    onError: (error) => console.error("Failed to delete task:", error),
+  });
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const openModal = () => setIsModalOpen(true);
+  const closeModal = () => setIsModalOpen(false);
+
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [startDate, setStartDate] = useState(dayjs());
+  const [endDate, setEndDate] = useState(dayjs().add(1, "hour"));
+  const [subTasks, setSubTasks] = useState(["", "", ""]);
+
+  const onSubmit = async (e: any) => {
+    e.preventDefault();
+
+    const formData = new FormData(e.currentTarget);
+    const data = Object.fromEntries(formData);
+
+    console.log({ title, description, startDate, endDate, subTasks });
+
+    handleCreateSchedule({
+      title: "title",
+      description: "description",
+      startDateTime: "",
+      endDateTime: "",
+    });
+
+    //closeModal();
+  };
+
   const [expanded, setExpanded] = useState<{ [key: string]: boolean }>({});
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
   const [menuTask, setMenuTask] = useState<Schedule | null>(null);
-  const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(
-    null,
-  );
-  const [openModal, setOpenModal] = useState(false);
-  const [openScheduleModal, setOpenAddScheduledModal] = useState(false);
 
   const handleToggleExpand = (taskId: string) => {
     setExpanded((prev) => ({
@@ -63,51 +137,6 @@ export default function Home() {
     event.stopPropagation();
     setMenuAnchor(event.currentTarget);
     setMenuTask(task);
-  };
-
-  const handleCloseMenu = () => {
-    setMenuAnchor(null);
-    setMenuTask(null);
-  };
-
-  const handleSubTaskToggle = (scheduleId: string, taskId: string) => {
-    setSchedule((prevSchedules: Schedule[]) =>
-      prevSchedules.map((schedule: Schedule) =>
-        schedule.id === scheduleId
-          ? {
-              ...schedule,
-              tasks: schedule.tasks.map((task: Task) =>
-                task.id === taskId
-                  ? {
-                      ...task,
-                      status:
-                        task.status === "pending" ? "completed" : "pending",
-                    }
-                  : task,
-              ),
-            }
-          : schedule,
-      ),
-    );
-  };
-
-  //
-  const handleOpenModal = (schedule: Schedule) => {
-    setSelectedSchedule(schedule);
-    setOpenModal(true);
-  };
-
-  const handleCloseModal = () => {
-    setOpenModal(false);
-    setSelectedSchedule(null);
-  };
-
-  const handleOpenAddScheduleModal = () => {
-    setOpenAddScheduledModal(true);
-  };
-
-  const handleCloseAddModal = () => {
-    setOpenAddScheduledModal(false);
   };
 
   if (isLoading) {
@@ -126,7 +155,7 @@ export default function Home() {
     <div className="w-full max-w-md mt-4 p-4 bg-gray-100">
       <div className="flex justify-between items-center mb-4">
         <Typography variant="h5">할일 목록</Typography>
-        <IconButton onClick={handleOpenAddScheduleModal}>
+        <IconButton onClick={openModal}>
           <AddIcon />
         </IconButton>
       </div>
@@ -199,64 +228,76 @@ export default function Home() {
       <Popover
         open={Boolean(menuAnchor)}
         anchorEl={menuAnchor}
-        onClose={handleCloseMenu}
+        //onClose={handleCloseMenu}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
       >
-        <MenuItem onClick={() => handleOpenModal(menuTask!)}>수정</MenuItem>
-        <MenuItem onClick={handleCloseMenu}>삭제</MenuItem>
+        <MenuItem onClick={() => handleTaskEdit({ id: "", taskData: {} })}>
+          수정
+        </MenuItem>
+        <MenuItem onClick={() => handleTaskDelete({ id: "" })}>삭제</MenuItem>
       </Popover>
 
-      <Modal open={openModal} onClose={handleCloseModal}>
-        <Box className="p-6 bg-white shadow-lg rounded-lg max-w-md mx-auto mt-20">
-          <Typography variant="h6">세부 설정</Typography>
-          {selectedSchedule && (
-            <>
-              <TextField
-                label="할일 제목"
+      <Modal
+        isOpen={isModalOpen}
+        onOpenChange={closeModal}
+        placement="center"
+        size="sm"
+      >
+        <ModalContent>
+          <form onSubmit={onSubmit}>
+            <ModalHeader>할 일 추가</ModalHeader>
+            <ModalBody>
+              <Input
+                required
                 fullWidth
-                margin="normal"
-                defaultValue={selectedSchedule.title}
+                label="제목"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
               />
-              <TextField
-                label="마감 기한"
-                type="date"
+              <Input
                 fullWidth
-                margin="normal"
-                defaultValue={selectedSchedule.endDate}
+                label="설명"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
               />
-              <Box className="flex justify-end mt-4">
-                <Button variant="contained" onClick={handleCloseModal}>
-                  저장
-                </Button>
-              </Box>
-            </>
-          )}
-        </Box>
-      </Modal>
-
-      <Modal open={openScheduleModal} onClose={handleCloseAddModal}>
-        <Box className="p-6 bg-white shadow-lg rounded-lg max-w-md mx-auto mt-20">
-          <Typography variant="h6">할 일 추가하기</Typography>
-          <TextField
-            label="할일 제목"
-            fullWidth
-            margin="normal"
-            defaultValue="제목"
-          />
-          <TextField
-            label="마감 기한"
-            type="date"
-            fullWidth
-            margin="normal"
-            defaultValue="2025-01-01"
-          />
-          <Box className="flex justify-end mt-4">
-            <Button variant="contained" onClick={handleCloseModal}>
-              저장
-            </Button>
-          </Box>
-        </Box>
+              <DatePicker
+                label="시작 날짜 및 시간"
+                labelPlacement="outside"
+                name="datetime"
+                hourCycle={24}
+                defaultValue={now(getLocalTimeZone())}
+                hideTimeZone
+                showMonthAndYearPickers
+                variant="flat"
+                validate={(value) => {
+                  if (value < now(getLocalTimeZone())) {
+                    return "과거시간은 사용할 수 없습니다";
+                  }
+                }}
+              />
+              <DatePicker
+                label="종료 날짜 및 시간"
+                labelPlacement="outside"
+                name="datetime"
+                hourCycle={24}
+                defaultValue={now(getLocalTimeZone())}
+                hideTimeZone
+                showMonthAndYearPickers
+                variant="flat"
+                validate={(value) => {
+                  if (value < now(getLocalTimeZone())) {
+                    return "과거시간은 사용할 수 없습니다";
+                  }
+                }}
+              />
+            </ModalBody>
+            <ModalFooter>
+              <Button type="reset">취소</Button>
+              <Button type="submit">저장</Button>
+            </ModalFooter>
+          </form>
+        </ModalContent>
       </Modal>
     </div>
   );
