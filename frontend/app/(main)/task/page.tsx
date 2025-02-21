@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   Checkbox,
   Typography,
@@ -15,7 +15,6 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { Edit } from "@mui/icons-material";
 
-import { Schedule } from "Type";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AddTask,
@@ -44,11 +43,9 @@ import {
   Accordion,
   AccordionItem,
 } from "@nextui-org/react";
-import dayjs from "dayjs";
 import { getLocalTimeZone, now } from "@internationalized/date";
 
-export const alramCycles = [
-  { key: "1min", label: "1분마다 알림" },
+const periods = [
   { key: "30min", label: "30분마다 알림" },
   { key: "1hour", label: "1시간마다 알림" },
   { key: "2hour", label: "2시간마다 알림" },
@@ -74,12 +71,23 @@ export default function Home() {
       description: string;
       startDateTime?: string;
       endDateTime?: string;
-    }) => createSchedule("recurring", "task", title, description, "0 * * * *"),
+    }) => {
+      let cronExp = "0 * * * *";
+
+      if (selectKey === "30min") {
+        cronExp = "*/30 * * * *";
+      } else if (selectKey === "1hour") {
+        cronExp = "0 * * * *";
+      } else {
+        cronExp = "0 */2 * * *";
+      }
+
+      createSchedule("recurring", "task", title, "", cronExp);
+    },
     onMutate: () => {},
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryId] }),
     onError: (error) => console.error("Failed to create a schedule:", error),
     onSettled: () => {
-      //setIsLoading(false);
       closeModal();
     },
   });
@@ -92,7 +100,6 @@ export default function Home() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryId] }),
     onError: (error) => console.error("Failed to delete the schedule:", error),
     onSettled: () => {
-      //setIsLoading(false);
       closeModal();
     },
   });
@@ -105,7 +112,6 @@ export default function Home() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryId] }),
     onError: (error) => console.error("Failed to update the schedule:", error),
     onSettled: () => {
-      //setIsLoading(false);
       closeModal();
     },
   });
@@ -153,35 +159,23 @@ export default function Home() {
     setOpenPopover(openPopover === id ? null : id);
   };
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [startDate, setStartDate] = useState(dayjs());
-  const [endDate, setEndDate] = useState(dayjs().add(1, "hour"));
-  const [subTasks, setSubTasks] = useState(["", "", ""]);
-
   const onSubmit = async (e: any) => {
     e.preventDefault();
 
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData);
 
-    console.log(data);
-
-    console.log({ title, description, startDate, endDate, subTasks });
-
     handleCreateSchedule({
       title: data.title as string,
       description: (data.description as string) || "description",
-      startDateTime: data.startDateTime || null,
+      startDateTime: "",
       endDateTime: "",
     });
-
-    //closeModal();
   };
 
+  const [selectKey, setValue] = React.useState("");
+
   const [expanded, setExpanded] = useState<{ [key: string]: boolean }>({});
-  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
-  const [menuTask, setMenuTask] = useState<Schedule | null>(null);
 
   const [newSubTask, setNewSubTask] = useState("");
   const [isAdding, setIsAdding] = useState(false);
@@ -355,6 +349,10 @@ export default function Home() {
         </div>
       )}
 
+      <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=false"
+      />
       <Modal
         isOpen={isModalOpen}
         onOpenChange={closeModal}
@@ -380,10 +378,14 @@ export default function Home() {
                 labelPlacement="outside"
                 label="알람 시간"
                 defaultSelectedKeys={["1hour"]}
+                selectedKeys={[selectKey]}
+                onChange={(e) => {
+                  setValue(e.target.value);
+                }}
                 placeholder="시간을 선택하세요"
               >
-                {alramCycles.map((animal) => (
-                  <SelectItem key={animal.key}>{animal.label}</SelectItem>
+                {periods.map((period) => (
+                  <SelectItem key={period.key}>{period.label}</SelectItem>
                 ))}
               </Select>
 

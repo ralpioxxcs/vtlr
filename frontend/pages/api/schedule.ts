@@ -42,6 +42,17 @@ export async function createSchedule(
 ) {
   const url = `${baseURL}/v1.0/scheduler/schedule`;
 
+  let initialTask = [];
+
+  if (command !== "") {
+    initialTask.push({
+      title: "title",
+      text: command,
+      volume: 50,
+      language: "ko",
+    });
+  }
+
   try {
     const data = {
       title,
@@ -50,14 +61,7 @@ export async function createSchedule(
       type,
       interval: cronExp,
       active: true,
-      task: [
-        {
-          title: "title",
-          text: command,
-          volume: 50,
-          language: "ko",
-        },
-      ],
+      task: initialTask.length != 0 ? initialTask : [],
     };
 
     const response = await fetch(url, {
