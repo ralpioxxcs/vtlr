@@ -9,18 +9,21 @@ import {
   Box,
   List,
   ListItemText,
-  MenuItem,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import DeleteIcon from "@mui/icons-material/Delete";
+import { Edit } from "@mui/icons-material";
+
 import { Schedule } from "Type";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  AddTask,
   createSchedule,
   deleteSchedule,
   deleteTask,
   getScheduleList,
+  updateSchedule,
   updateTask,
 } from "@/pages/api/schedule";
 import {
@@ -36,10 +39,20 @@ import {
   PopoverContent,
   PopoverTrigger,
   Spinner,
+  SelectItem,
+  Select,
+  Accordion,
+  AccordionItem,
 } from "@nextui-org/react";
 import dayjs from "dayjs";
 import { getLocalTimeZone, now } from "@internationalized/date";
-import { Edit } from "@mui/icons-material";
+
+export const alramCycles = [
+  { key: "1min", label: "1분마다 알림" },
+  { key: "30min", label: "30분마다 알림" },
+  { key: "1hour", label: "1시간마다 알림" },
+  { key: "2hour", label: "2시간마다 알림" },
+];
 
 export default function Home() {
   const queryId = "task";
@@ -59,9 +72,9 @@ export default function Home() {
     }: {
       title: string;
       description: string;
-      startDateTime: string;
-      endDateTime: string;
-    }) => createSchedule("recurring", "task", title, "", "0 * * * *"),
+      startDateTime?: string;
+      endDateTime?: string;
+    }) => createSchedule("recurring", "task", title, description, "0 * * * *"),
     onMutate: () => {},
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryId] }),
     onError: (error) => console.error("Failed to create a schedule:", error),
@@ -77,14 +90,27 @@ export default function Home() {
     },
     onMutate: () => {},
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryId] }),
-    onError: (error) => console.error("Failed to create a schedule:", error),
+    onError: (error) => console.error("Failed to delete the schedule:", error),
     onSettled: () => {
       //setIsLoading(false);
       closeModal();
     },
   });
 
-  const { mutate: handleTaskCheck } = useMutation({
+  const { mutate: handleEditSchedule } = useMutation({
+    mutationFn: ({ id }: { id: string }) => {
+      return updateSchedule(id, {});
+    },
+    onMutate: () => {},
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryId] }),
+    onError: (error) => console.error("Failed to update the schedule:", error),
+    onSettled: () => {
+      //setIsLoading(false);
+      closeModal();
+    },
+  });
+
+  const { mutate: handleCheckTask } = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       updateTask(id, {
         status: status === "pending" ? "completed" : "pending",
@@ -93,13 +119,23 @@ export default function Home() {
     onError: (error) => console.error("Failed to update task:", error),
   });
 
-  const { mutate: handleTaskDelete } = useMutation({
+  const { mutate: handleAddTask } = useMutation({
+    mutationFn: ({ id }: { id: string }) => AddTask(id, { title: newSubTask }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [queryId] });
+      setNewSubTask("");
+      setIsAdding(false);
+    },
+    onError: (error) => console.error("Failed to delete task:", error),
+  });
+
+  const { mutate: handleDeleteTask } = useMutation({
     mutationFn: ({ id }: { id: string }) => deleteTask(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryId] }),
     onError: (error) => console.error("Failed to delete task:", error),
   });
 
-  const { mutate: handleTaskEdit } = useMutation({
+  const { mutate: handleEditTask } = useMutation({
     mutationFn: ({ id, taskData }: { id: string; taskData: any }) =>
       updateTask(id, taskData),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryId] }),
@@ -129,12 +165,14 @@ export default function Home() {
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData);
 
+    console.log(data);
+
     console.log({ title, description, startDate, endDate, subTasks });
 
     handleCreateSchedule({
-      title: "title",
-      description: "description",
-      startDateTime: "",
+      title: data.title as string,
+      description: (data.description as string) || "description",
+      startDateTime: data.startDateTime || null,
       endDateTime: "",
     });
 
@@ -144,6 +182,21 @@ export default function Home() {
   const [expanded, setExpanded] = useState<{ [key: string]: boolean }>({});
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
   const [menuTask, setMenuTask] = useState<Schedule | null>(null);
+
+  const [newSubTask, setNewSubTask] = useState("");
+  const [isAdding, setIsAdding] = useState(false);
+
+  const [holdTimeout, setHoldTimeout] = useState<NodeJS.Timeout | null>(null);
+  const startHold = (taskId: string) => {
+    const timeout = setTimeout(() => handleDeleteTask({ id: taskId }), 1000);
+    setHoldTimeout(timeout);
+  };
+
+  const cancelHold = () => {
+    if (holdTimeout) {
+      clearTimeout(holdTimeout);
+    }
+  };
 
   const handleToggleExpand = (taskId: string) => {
     setExpanded((prev) => ({
@@ -219,9 +272,9 @@ export default function Home() {
                         variant="light"
                         size="sm"
                         startContent={<Edit size={16} />}
-                        onPress={() => alert("수정 " + schedule.id)}
+                        onPress={() => handleEditSchedule({ id: schedule.id })}
                       >
-                        수정
+                        스케줄 수정
                       </Button>
                       <Button
                         variant="light"
@@ -231,7 +284,7 @@ export default function Home() {
                           handleDeleteSchedule({ id: schedule.id })
                         }
                       >
-                        삭제
+                        스케줄 삭제
                       </Button>
                     </div>
                   </PopoverContent>
@@ -241,12 +294,20 @@ export default function Home() {
               <Collapse in={expanded[schedule.id]} timeout="auto" unmountOnExit>
                 <List>
                   {schedule.tasks.map((task) => (
-                    <div key={task.id} className="flex items-center space-x-2">
+                    <div
+                      key={task.id}
+                      className="flex items-center space-x-2"
+                      onTouchStart={() => startHold(task.id)}
+                      onTouchEnd={cancelHold}
+                      onMouseDown={() => startHold(task.id)}
+                      onMouseUp={cancelHold}
+                      onMouseLeave={cancelHold}
+                    >
                       <Checkbox
                         checked={task.status === "completed"}
                         onClick={(e) => e.stopPropagation()}
                         onChange={() =>
-                          handleTaskCheck({ id: task.id, status: task.status })
+                          handleCheckTask({ id: task.id, status: task.status })
                         }
                       />
                       <ListItemText
@@ -261,6 +322,26 @@ export default function Home() {
                       />
                     </div>
                   ))}
+
+                  {isAdding && (
+                    <Input
+                      autoFocus
+                      value={newSubTask}
+                      onChange={(e) => setNewSubTask(e.target.value)}
+                      onKeyDown={(e) =>
+                        e.key === "Enter" && handleAddTask({ id: schedule.id })
+                      }
+                      placeholder="할일 제목 입력.."
+                    />
+                  )}
+
+                  <Button
+                    isIconOnly
+                    variant="light"
+                    onPress={() => setIsAdding(true)}
+                  >
+                    <AddIcon />
+                  </Button>
                 </List>
               </Collapse>
             </Box>
@@ -269,7 +350,7 @@ export default function Home() {
       ) : (
         <div className="flex-col items-center text-center grow content-center self-center bg-gray-100 text-gray-800">
           <div className="text-2xl text-gray-600">
-            <p>할 일이 없습니다. 새로운 일을 생성하세요</p>
+            <p>새로운 일을 생성하세요!</p>
           </div>
         </div>
       )}
@@ -285,52 +366,75 @@ export default function Home() {
             <ModalHeader>할 일 추가</ModalHeader>
             <ModalBody>
               <Input
+                isRequired
                 required
-                fullWidth
                 label="제목"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-              />
-              <Input
-                fullWidth
-                label="설명"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-              <DatePicker
-                label="시작 날짜 및 시간"
                 labelPlacement="outside"
-                name="datetime"
-                hourCycle={24}
-                defaultValue={now(getLocalTimeZone())}
-                hideTimeZone
-                showMonthAndYearPickers
-                variant="flat"
-                validate={(value) => {
-                  if (value < now(getLocalTimeZone())) {
-                    return "과거시간은 사용할 수 없습니다";
-                  }
-                }}
+                name="title"
+                placeholder="스케줄 제목을 입력하세요"
+                type="text"
               />
-              <DatePicker
-                label="종료 날짜 및 시간"
+              <Select
+                isRequired
+                className="max-w-xs"
                 labelPlacement="outside"
-                name="datetime"
-                hourCycle={24}
-                defaultValue={now(getLocalTimeZone())}
-                hideTimeZone
-                showMonthAndYearPickers
-                variant="flat"
-                validate={(value) => {
-                  if (value < now(getLocalTimeZone())) {
-                    return "과거시간은 사용할 수 없습니다";
-                  }
-                }}
-              />
+                label="알람 시간"
+                defaultSelectedKeys={["1hour"]}
+                placeholder="시간을 선택하세요"
+              >
+                {alramCycles.map((animal) => (
+                  <SelectItem key={animal.key}>{animal.label}</SelectItem>
+                ))}
+              </Select>
+
+              <Accordion isCompact variant="light">
+                <AccordionItem
+                  key="1"
+                  aria-label="Accordion 1"
+                  title="추가 설정"
+                >
+                  <Input
+                    label="설명"
+                    labelPlacement="outside"
+                    name="description"
+                    placeholder="스케줄 설명을 입력하세요"
+                    type="text"
+                  />
+                  <DatePicker
+                    label="시작 날짜 및 시간"
+                    name="datetime"
+                    hourCycle={24}
+                    hideTimeZone
+                    showMonthAndYearPickers
+                    variant="flat"
+                    defaultValue={now(getLocalTimeZone())}
+                    validate={(value) => {
+                      if (value < now(getLocalTimeZone())) {
+                        return "과거시간은 사용할 수 없습니다";
+                      }
+                    }}
+                  />
+                  <DatePicker
+                    label="종료 날짜 및 시간"
+                    name="datetime"
+                    hourCycle={24}
+                    hideTimeZone
+                    showMonthAndYearPickers
+                    variant="flat"
+                    defaultValue={now(getLocalTimeZone())}
+                    validate={(value) => {
+                      if (value < now(getLocalTimeZone())) {
+                        return "과거시간은 사용할 수 없습니다";
+                      }
+                    }}
+                  />
+                </AccordionItem>
+              </Accordion>
             </ModalBody>
             <ModalFooter>
-              <Button type="reset">취소</Button>
-              <Button type="submit">저장</Button>
+              <Button className="w-full" color="primary" type="submit">
+                {isLoading ? "생성중.." : "만들기"}
+              </Button>
             </ModalFooter>
           </form>
         </ModalContent>

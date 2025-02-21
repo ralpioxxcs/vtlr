@@ -141,3 +141,20 @@ export async function updateTask(id: string, patchData: any) {
     throw err;
   }
 }
+
+export async function AddTask(id: string, task: any) {
+  const url = `${baseURL}/v1.0/scheduler/schedule/${id}/task`;
+
+  try {
+    await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(task),
+    });
+  } catch (err) {
+    console.error(`error is occured (${err})`);
+    throw err;
+  }
+}
