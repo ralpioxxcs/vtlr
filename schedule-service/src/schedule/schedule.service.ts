@@ -115,7 +115,7 @@ export class ScheduleService implements OnModuleInit {
       if (category) {
         query.andWhere('schedule.category = :category', { category });
       }
-      const schedules = await query.orderBy('task.createdAt', 'DESC').getMany();
+      const schedules = await query.orderBy('task.createdAt', 'ASC').getMany();
 
       return schedules;
     } catch (error) {
