@@ -39,6 +39,9 @@ export async function createSchedule(
   title: string,
   command: string,
   cronExp: string,
+  removeOnComplete?: boolean,
+  startTime?: string,
+  endTime?: string,
 ) {
   const url = `${baseURL}/v1.0/scheduler/schedule`;
 
@@ -56,11 +59,14 @@ export async function createSchedule(
   try {
     const data = {
       title,
-      description: "description",
+      description: "",
       category,
       type,
       interval: cronExp,
       active: true,
+      removeOnComplete: removeOnComplete || false,
+      startTime,
+      endTime,
       task: initialTask.length != 0 ? initialTask : [],
     };
 

@@ -24,7 +24,6 @@ import {
   updateTask,
 } from "@/pages/api/schedule";
 import {
-  DatePicker,
   Button,
   Input,
   Modal,
@@ -41,9 +40,10 @@ import {
   Accordion,
   AccordionItem,
   Checkbox,
-  Textarea,
+  DateRangePicker,
+  TimeInput,
 } from "@nextui-org/react";
-import { getLocalTimeZone, now } from "@internationalized/date";
+import { today, parseTime } from "@internationalized/date";
 
 const periods = [
   { key: "30min", label: "30분마다 알림" },
@@ -72,22 +72,19 @@ const ScheduleItem = React.memo(
   }) => (
     <Box
       key={schedule.id}
-      className="p-4 bg-white shadow-md rounded-xl cursor-pointer"
-      onClick={() => handleToggleExpand(schedule.id)}
+      className="p-4 bg-white shadow-md rounded-md cursor-pointer"
     >
       <div className="flex items-center justify-between">
         <div className="flex-col items-center space-y-1">
-          <Typography className="text-lg font-normal overflow-hidden whitespace-nowrap text-ellipsis w-60">
+          <Typography
+            className="text-lg font-normal overflow-hidden whitespace-nowrap text-ellipsis w-60"
+            onClick={() => handleToggleExpand(schedule.id)}
+          >
             {schedule.title}
           </Typography>
-          {schedule.startTime && (
+          {(schedule.startTime && schedule.endTime) && (
             <Typography className="text-xs text-gray-400">
-              시작일:{new Date(schedule.startTime).toLocaleString()}
-            </Typography>
-          )}
-          {schedule.endTime && (
-            <Typography className="text-xs text-gray-400">
-              종료일: {new Date(schedule.endTime).toLocaleString()}
+              기간: {new Date(schedule.startTime).toLocaleDateString()} ~ {new Date(schedule.endTime).toLocaleDateString()}
             </Typography>
           )}
         </div>
@@ -130,7 +127,7 @@ const ScheduleItem = React.memo(
         </Popover>
       </div>
 
-      <Collapse in={expanded[schedule.id]} timeout="auto" unmountOnExit>
+      <Collapse in={expanded[schedule.id]} unmountOnExit timeout={50}>
         <List className="flex flex-col gap-1">
           {schedule.tasks.length === 0 && !isAdding ? (
             <div className="text-center text-gray-500">
@@ -206,7 +203,12 @@ const Home = () => {
   const queryClient = useQueryClient();
 
   const handleCreateSchedule = useMutation({
-    mutationFn: ({ title, description, startDateTime, endDateTime }) => {
+    mutationFn: ({ title, description, startDateTime, endDateTime }: {
+      title: string,
+      description: string
+      startDateTime: string,
+      endDateTime: string
+    }) => {
       let cronExp = "0 * * * *";
 
       if (selectKey === "30min") {
@@ -217,7 +219,7 @@ const Home = () => {
         cronExp = "0 */2 * * *";
       }
 
-      return createSchedule("recurring", "task", title, "", cronExp);
+      return createSchedule("recurring", "task", title, "", cronExp, false, startDateTime, endDateTime);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryId] }),
     onError: (error) => console.error("Failed to create a schedule:", error),
@@ -283,6 +285,11 @@ const Home = () => {
   const [isAdding, setIsAdding] = useState(false);
   const [holdTimeout, setHoldTimeout] = useState(null);
 
+  const [dateRange, setDateRange] = React.useState({
+    start: today("Asia/Seoul"),
+    end: today("Asia/Seoul").add({ days: 1 }),
+  });
+
   const [schduleTitleValue, setSchduleTitleValue] = useState("");
   const [error, setError] = useState("");
 
@@ -331,17 +338,17 @@ const Home = () => {
     }));
   }, []);
 
-  const onSubmit = async (e) => {
+  const onSubmit = async (e: any) => {
     e.preventDefault();
 
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData);
 
     handleCreateSchedule({
-      title: data.title,
-      description: data.description || "description",
-      startDateTime: "",
-      endDateTime: "",
+      title: data.title as string,
+      description: data.description as string || "description",
+      startDateTime: dateRange.start.toString(),
+      endDateTime: dateRange.end.toString(),
     });
   };
 
@@ -431,7 +438,6 @@ const Home = () => {
                 labelPlacement="outside"
                 label="알람 시간"
                 defaultSelectedKeys={["1hour"]}
-                selectedKeys={[selectKey]}
                 onChange={(e) => {
                   setValue(e.target.value);
                 }}
@@ -442,50 +448,21 @@ const Home = () => {
                 ))}
               </Select>
 
-              <Accordion isCompact variant="light">
-                <AccordionItem
-                  key="1"
-                  aria-label="Accordion 1"
-                  title="추가 설정"
-                >
+              <Accordion isCompact>
+                <AccordionItem key="1" title="추가 설정">
                   <div className="flex flex-col gap-3">
-                    <Textarea
+                    <DateRangePicker
                       size="sm"
-                      label="설명"
-                      name="description"
-                      placeholder="스케줄 설명을 입력하세요"
-                      type="text"
-                    />
-                    <DatePicker
-                      size="sm"
-                      label="시작 날짜 및 시간"
-                      name="datetime"
+                      label="스케줄 설정 기간"
+                      labelPlacement="outside"
                       hourCycle={24}
                       hideTimeZone
-                      showMonthAndYearPickers
                       variant="flat"
-                      defaultValue={now(getLocalTimeZone())}
-                      validate={(value) => {
-                        if (value < now(getLocalTimeZone())) {
-                          return "과거시간은 사용할 수 없습니다";
-                        }
-                      }}
+                      value={dateRange}
+                      onChange={setDateRange}
                     />
-                    <DatePicker
-                      size="sm"
-                      label="종료 날짜 및 시간"
-                      name="datetime"
-                      hourCycle={24}
-                      hideTimeZone
-                      showMonthAndYearPickers
-                      variant="flat"
-                      defaultValue={now(getLocalTimeZone())}
-                      validate={(value) => {
-                        if (value < now(getLocalTimeZone())) {
-                          return "과거시간은 사용할 수 없습니다";
-                        }
-                      }}
-                    />
+                    <TimeInput size="sm" label="비활성화 시작 시간" labelPlacement="outside" defaultValue={parseTime("22:00")} />
+                    <TimeInput size="sm" label="비활성화 종료 시간" labelPlacement="outside" defaultValue={parseTime("06:00")} />
                   </div>
                 </AccordionItem>
               </Accordion>
