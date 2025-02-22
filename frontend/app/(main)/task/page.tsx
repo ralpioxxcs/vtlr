@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
-  Checkbox,
   Typography,
   IconButton,
   Collapse,
@@ -14,7 +13,6 @@ import AddIcon from "@mui/icons-material/Add";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { Edit } from "@mui/icons-material";
-
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AddTask,
@@ -42,6 +40,8 @@ import {
   Select,
   Accordion,
   AccordionItem,
+  Checkbox,
+  Textarea,
 } from "@nextui-org/react";
 import { getLocalTimeZone, now } from "@internationalized/date";
 
@@ -51,7 +51,152 @@ const periods = [
   { key: "2hour", label: "2시간마다 알림" },
 ];
 
-export default function Home() {
+const ScheduleItem = React.memo(
+  ({
+    schedule,
+    expanded,
+    handleToggleExpand,
+    handleEditSchedule,
+    handleDeleteSchedule,
+    handleCheckTask,
+    handleDeleteTask,
+    startHold,
+    cancelHold,
+    isAdding,
+    setIsAdding,
+    newSubTask,
+    setNewSubTask,
+    handleAddTask,
+    openPopover,
+    togglePopover,
+  }) => (
+    <Box
+      key={schedule.id}
+      className="p-4 bg-white shadow-md rounded-xl cursor-pointer"
+      onClick={() => handleToggleExpand(schedule.id)}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex-col items-center space-y-1">
+          <Typography className="text-lg font-normal overflow-hidden whitespace-nowrap text-ellipsis w-60">
+            {schedule.title}
+          </Typography>
+          {schedule.startTime && (
+            <Typography className="text-xs text-gray-400">
+              시작일:{new Date(schedule.startTime).toLocaleString()}
+            </Typography>
+          )}
+          {schedule.endTime && (
+            <Typography className="text-xs text-gray-400">
+              종료일: {new Date(schedule.endTime).toLocaleString()}
+            </Typography>
+          )}
+        </div>
+
+        <Popover
+          isOpen={openPopover === schedule.id}
+          onOpenChange={() => togglePopover(schedule.id)}
+          placement="bottom-end"
+        >
+          <PopoverTrigger>
+            <Button
+              isIconOnly
+              variant="light"
+              size="sm"
+              onPress={() => togglePopover(schedule.id)}
+            >
+              <MoreVertIcon />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="p-2 bg-white shadow-md rounded-md">
+            <div className="flex flex-col gap-2">
+              <Button
+                variant="light"
+                size="sm"
+                startContent={<Edit />}
+                onPress={() => handleEditSchedule({ id: schedule.id })}
+              >
+                스케줄 수정
+              </Button>
+              <Button
+                variant="light"
+                size="sm"
+                startContent={<DeleteIcon />}
+                onPress={() => handleDeleteSchedule({ id: schedule.id })}
+              >
+                스케줄 삭제
+              </Button>
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
+
+      <Collapse in={expanded[schedule.id]} timeout="auto" unmountOnExit>
+        <List className="flex flex-col gap-1">
+          {schedule.tasks.length === 0 && !isAdding ? (
+            <div className="text-center text-gray-500">
+              아래 버튼을 눌러서 할일을 추가하세요
+            </div>
+          ) : (
+            schedule.tasks.map((task) => (
+              <div
+                key={task.id}
+                className="flex items-center space-x-2"
+                onTouchStart={() => startHold(task.id)}
+                onTouchEnd={cancelHold}
+                onMouseDown={() => startHold(task.id)}
+                onMouseUp={cancelHold}
+                onMouseLeave={cancelHold}
+              >
+                <Checkbox
+                  checked={task.status === "completed"}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={() =>
+                    handleCheckTask({
+                      id: task.id,
+                      status: task.status,
+                    })
+                  }
+                />
+                <ListItemText
+                  className="text-sm text-gray-500"
+                  primary={
+                    <Typography sx={{ fontSize: "0.9rem", color: "gray" }}>
+                      {task.title}
+                    </Typography>
+                  }
+                />
+              </div>
+            ))
+          )}
+
+          {isAdding && (
+            <Input
+              autoFocus
+              value={newSubTask}
+              onChange={(e) => setNewSubTask(e.target.value)}
+              onKeyDown={(e) =>
+                e.key === "Enter" && handleAddTask({ id: schedule.id })
+              }
+              placeholder="할일 제목 입력.."
+            />
+          )}
+
+          <div className="text-center text-gray-500">
+            <Button
+              isIconOnly
+              variant="light"
+              onPress={() => setIsAdding(true)}
+            >
+              <AddIcon />
+            </Button>
+          </div>
+        </List>
+      </Collapse>
+    </Box>
+  ),
+);
+
+const Home = () => {
   const queryId = "task";
   const { data, isLoading, isError } = useQuery({
     queryKey: [queryId],
@@ -60,18 +205,8 @@ export default function Home() {
 
   const queryClient = useQueryClient();
 
-  const { mutate: handleCreateSchedule } = useMutation({
-    mutationFn: ({
-      title,
-      description,
-      startDateTime,
-      endDateTime,
-    }: {
-      title: string;
-      description: string;
-      startDateTime?: string;
-      endDateTime?: string;
-    }) => {
+  const handleCreateSchedule = useMutation({
+    mutationFn: ({ title, description, startDateTime, endDateTime }) => {
       let cronExp = "0 * * * *";
 
       if (selectKey === "30min") {
@@ -82,121 +217,132 @@ export default function Home() {
         cronExp = "0 */2 * * *";
       }
 
-      createSchedule("recurring", "task", title, "", cronExp);
+      return createSchedule("recurring", "task", title, "", cronExp);
     },
-    onMutate: () => {},
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryId] }),
     onError: (error) => console.error("Failed to create a schedule:", error),
     onSettled: () => {
       closeModal();
     },
-  });
+  }).mutate;
 
-  const { mutate: handleDeleteSchedule } = useMutation({
-    mutationFn: ({ id }: { id: string }) => {
-      return deleteSchedule(id);
-    },
-    onMutate: () => {},
+  const handleDeleteSchedule = useMutation({
+    mutationFn: ({ id }) => deleteSchedule(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryId] }),
     onError: (error) => console.error("Failed to delete the schedule:", error),
     onSettled: () => {
       closeModal();
     },
-  });
+  }).mutate;
 
-  const { mutate: handleEditSchedule } = useMutation({
-    mutationFn: ({ id }: { id: string }) => {
-      return updateSchedule(id, {});
-    },
-    onMutate: () => {},
+  const handleEditSchedule = useMutation({
+    mutationFn: ({ id }) => updateSchedule(id, {}),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryId] }),
     onError: (error) => console.error("Failed to update the schedule:", error),
     onSettled: () => {
       closeModal();
     },
-  });
+  }).mutate;
 
-  const { mutate: handleCheckTask } = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) =>
+  const handleCheckTask = useMutation({
+    mutationFn: ({ id, status }) =>
       updateTask(id, {
         status: status === "pending" ? "completed" : "pending",
       }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryId] }),
     onError: (error) => console.error("Failed to update task:", error),
-  });
+  }).mutate;
 
-  const { mutate: handleAddTask } = useMutation({
-    mutationFn: ({ id }: { id: string }) => AddTask(id, { title: newSubTask }),
+  const handleAddTask = useMutation({
+    mutationFn: ({ id }) => AddTask(id, { title: newSubTask }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [queryId] });
       setNewSubTask("");
       setIsAdding(false);
     },
     onError: (error) => console.error("Failed to delete task:", error),
-  });
+  }).mutate;
 
-  const { mutate: handleDeleteTask } = useMutation({
-    mutationFn: ({ id }: { id: string }) => deleteTask(id),
+  const handleDeleteTask = useMutation({
+    mutationFn: ({ id }) => deleteTask(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryId] }),
     onError: (error) => console.error("Failed to delete task:", error),
-  });
+  }).mutate;
 
-  const { mutate: handleEditTask } = useMutation({
-    mutationFn: ({ id, taskData }: { id: string; taskData: any }) =>
-      updateTask(id, taskData),
+  const handleEditTask = useMutation({
+    mutationFn: ({ id, taskData }) => updateTask(id, taskData),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryId] }),
     onError: (error) => console.error("Failed to delete task:", error),
-  });
+  }).mutate;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const openModal = () => setIsModalOpen(true);
-  const closeModal = () => setIsModalOpen(false);
-
   const [openPopover, setOpenPopover] = useState(null);
+  const [selectKey, setValue] = useState("");
+  const [expanded, setExpanded] = useState({});
+  const [newSubTask, setNewSubTask] = useState("");
+  const [isAdding, setIsAdding] = useState(false);
+  const [holdTimeout, setHoldTimeout] = useState(null);
 
-  const togglePopover = (id) => {
-    setOpenPopover(openPopover === id ? null : id);
+  const [schduleTitleValue, setSchduleTitleValue] = useState("");
+  const [error, setError] = useState("");
+
+  const handleChangeScheduleTitleValue = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const inputValue = e.target.value;
+    setSchduleTitleValue(inputValue);
+
+    if (inputValue.length === 0) {
+      setError("최소 1자 이상 입력해야 합니다.");
+    } else if (inputValue.length > 20) {
+      setError("최대 20자까지 입력할 수 있습니다.");
+    } else {
+      setError("");
+    }
   };
 
-  const onSubmit = async (e: any) => {
+  const openModal = useCallback(() => setIsModalOpen(true), []);
+  const closeModal = useCallback(() => setIsModalOpen(false), []);
+  const togglePopover = useCallback(
+    (id) => {
+      setOpenPopover(openPopover === id ? null : id);
+    },
+    [openPopover],
+  );
+
+  const startHold = useCallback(
+    (taskId) => {
+      const timeout = setTimeout(() => handleDeleteTask({ id: taskId }), 1000);
+      setHoldTimeout(timeout);
+    },
+    [handleDeleteTask],
+  );
+
+  const cancelHold = useCallback(() => {
+    if (holdTimeout) {
+      clearTimeout(holdTimeout);
+    }
+  }, [holdTimeout]);
+
+  const handleToggleExpand = useCallback((taskId) => {
+    setExpanded((prev) => ({
+      ...prev,
+      [taskId]: !prev[taskId],
+    }));
+  }, []);
+
+  const onSubmit = async (e) => {
     e.preventDefault();
 
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData);
 
     handleCreateSchedule({
-      title: data.title as string,
-      description: (data.description as string) || "description",
+      title: data.title,
+      description: data.description || "description",
       startDateTime: "",
       endDateTime: "",
     });
-  };
-
-  const [selectKey, setValue] = React.useState("");
-
-  const [expanded, setExpanded] = useState<{ [key: string]: boolean }>({});
-
-  const [newSubTask, setNewSubTask] = useState("");
-  const [isAdding, setIsAdding] = useState(false);
-
-  const [holdTimeout, setHoldTimeout] = useState<NodeJS.Timeout | null>(null);
-  const startHold = (taskId: string) => {
-    const timeout = setTimeout(() => handleDeleteTask({ id: taskId }), 1000);
-    setHoldTimeout(timeout);
-  };
-
-  const cancelHold = () => {
-    if (holdTimeout) {
-      clearTimeout(holdTimeout);
-    }
-  };
-
-  const handleToggleExpand = (taskId: string) => {
-    setExpanded((prev) => ({
-      ...prev,
-      [taskId]: !prev[taskId],
-    }));
   };
 
   if (isLoading) {
@@ -214,7 +360,7 @@ export default function Home() {
   return (
     <div className="w-full max-w-md mt-4 p-4 bg-gray-100">
       <div className="flex justify-between items-center mb-4">
-        <Typography variant="h5">할일 목록</Typography>
+        <h3 className="text-xl">할일 목록</h3>
         <IconButton onClick={openModal}>
           <AddIcon />
         </IconButton>
@@ -223,122 +369,25 @@ export default function Home() {
       {data && data.length > 0 ? (
         <div className="space-y-4">
           {data.map((schedule) => (
-            <Box
+            <ScheduleItem
               key={schedule.id}
-              className="p-4 bg-white shadow-md rounded-xl cursor-pointer"
-              onClick={() => handleToggleExpand(schedule.id)}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex-col items-center space-y-1">
-                  <Typography className="text-lg font-normal overflow-hidden whitespace-nowrap text-ellipsis w-40">
-                    {schedule.title}
-                  </Typography>
-                  {schedule.startTime && (
-                    <Typography className="text-xs text-gray-400">
-                      시작일:{new Date(schedule.startTime).toLocaleString()}
-                    </Typography>
-                  )}
-                  {schedule.endTime && (
-                    <Typography className="text-xs text-gray-400">
-                      종료일: {new Date(schedule.endTime).toLocaleString()}
-                    </Typography>
-                  )}
-                </div>
-
-                <Popover
-                  isOpen={openPopover === schedule.id}
-                  onOpenChange={() => togglePopover(schedule.id)}
-                  placement="bottom-end"
-                >
-                  <PopoverTrigger>
-                    <Button
-                      isIconOnly
-                      variant="light"
-                      size="sm"
-                      onPress={() => togglePopover(schedule.id)}
-                    >
-                      <MoreVertIcon />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="p-2 bg-white shadow-md rounded-md">
-                    <div className="flex flex-col gap-2">
-                      <Button
-                        variant="light"
-                        size="sm"
-                        startContent={<Edit size={16} />}
-                        onPress={() => handleEditSchedule({ id: schedule.id })}
-                      >
-                        스케줄 수정
-                      </Button>
-                      <Button
-                        variant="light"
-                        size="sm"
-                        startContent={<DeleteIcon size={16} />}
-                        onPress={() =>
-                          handleDeleteSchedule({ id: schedule.id })
-                        }
-                      >
-                        스케줄 삭제
-                      </Button>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <Collapse in={expanded[schedule.id]} timeout="auto" unmountOnExit>
-                <List>
-                  {schedule.tasks.map((task) => (
-                    <div
-                      key={task.id}
-                      className="flex items-center space-x-2"
-                      onTouchStart={() => startHold(task.id)}
-                      onTouchEnd={cancelHold}
-                      onMouseDown={() => startHold(task.id)}
-                      onMouseUp={cancelHold}
-                      onMouseLeave={cancelHold}
-                    >
-                      <Checkbox
-                        checked={task.status === "completed"}
-                        onClick={(e) => e.stopPropagation()}
-                        onChange={() =>
-                          handleCheckTask({ id: task.id, status: task.status })
-                        }
-                      />
-                      <ListItemText
-                        className="text-sm text-gray-500"
-                        primary={
-                          <Typography
-                            sx={{ fontSize: "0.9rem", color: "gray" }}
-                          >
-                            {task.title}
-                          </Typography>
-                        }
-                      />
-                    </div>
-                  ))}
-
-                  {isAdding && (
-                    <Input
-                      autoFocus
-                      value={newSubTask}
-                      onChange={(e) => setNewSubTask(e.target.value)}
-                      onKeyDown={(e) =>
-                        e.key === "Enter" && handleAddTask({ id: schedule.id })
-                      }
-                      placeholder="할일 제목 입력.."
-                    />
-                  )}
-
-                  <Button
-                    isIconOnly
-                    variant="light"
-                    onPress={() => setIsAdding(true)}
-                  >
-                    <AddIcon />
-                  </Button>
-                </List>
-              </Collapse>
-            </Box>
+              schedule={schedule}
+              expanded={expanded}
+              handleToggleExpand={handleToggleExpand}
+              handleEditSchedule={handleEditSchedule}
+              handleDeleteSchedule={handleDeleteSchedule}
+              handleCheckTask={handleCheckTask}
+              handleDeleteTask={handleDeleteTask}
+              startHold={startHold}
+              cancelHold={cancelHold}
+              isAdding={isAdding}
+              setIsAdding={setIsAdding}
+              newSubTask={newSubTask}
+              setNewSubTask={setNewSubTask}
+              handleAddTask={handleAddTask}
+              openPopover={openPopover}
+              togglePopover={togglePopover}
+            />
           ))}
         </div>
       ) : (
@@ -371,6 +420,10 @@ export default function Home() {
                 name="title"
                 placeholder="스케줄 제목을 입력하세요"
                 type="text"
+                value={schduleTitleValue}
+                onChange={handleChangeScheduleTitleValue}
+                isInvalid={!!error}
+                errorMessage={error}
               />
               <Select
                 isRequired
@@ -395,41 +448,45 @@ export default function Home() {
                   aria-label="Accordion 1"
                   title="추가 설정"
                 >
-                  <Input
-                    label="설명"
-                    labelPlacement="outside"
-                    name="description"
-                    placeholder="스케줄 설명을 입력하세요"
-                    type="text"
-                  />
-                  <DatePicker
-                    label="시작 날짜 및 시간"
-                    name="datetime"
-                    hourCycle={24}
-                    hideTimeZone
-                    showMonthAndYearPickers
-                    variant="flat"
-                    defaultValue={now(getLocalTimeZone())}
-                    validate={(value) => {
-                      if (value < now(getLocalTimeZone())) {
-                        return "과거시간은 사용할 수 없습니다";
-                      }
-                    }}
-                  />
-                  <DatePicker
-                    label="종료 날짜 및 시간"
-                    name="datetime"
-                    hourCycle={24}
-                    hideTimeZone
-                    showMonthAndYearPickers
-                    variant="flat"
-                    defaultValue={now(getLocalTimeZone())}
-                    validate={(value) => {
-                      if (value < now(getLocalTimeZone())) {
-                        return "과거시간은 사용할 수 없습니다";
-                      }
-                    }}
-                  />
+                  <div className="flex flex-col gap-3">
+                    <Textarea
+                      size="sm"
+                      label="설명"
+                      name="description"
+                      placeholder="스케줄 설명을 입력하세요"
+                      type="text"
+                    />
+                    <DatePicker
+                      size="sm"
+                      label="시작 날짜 및 시간"
+                      name="datetime"
+                      hourCycle={24}
+                      hideTimeZone
+                      showMonthAndYearPickers
+                      variant="flat"
+                      defaultValue={now(getLocalTimeZone())}
+                      validate={(value) => {
+                        if (value < now(getLocalTimeZone())) {
+                          return "과거시간은 사용할 수 없습니다";
+                        }
+                      }}
+                    />
+                    <DatePicker
+                      size="sm"
+                      label="종료 날짜 및 시간"
+                      name="datetime"
+                      hourCycle={24}
+                      hideTimeZone
+                      showMonthAndYearPickers
+                      variant="flat"
+                      defaultValue={now(getLocalTimeZone())}
+                      validate={(value) => {
+                        if (value < now(getLocalTimeZone())) {
+                          return "과거시간은 사용할 수 없습니다";
+                        }
+                      }}
+                    />
+                  </div>
                 </AccordionItem>
               </Accordion>
             </ModalBody>
@@ -443,4 +500,6 @@ export default function Home() {
       </Modal>
     </div>
   );
-}
+};
+
+export default Home;
