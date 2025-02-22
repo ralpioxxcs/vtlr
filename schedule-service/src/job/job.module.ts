@@ -11,11 +11,13 @@ import { JOB_QUEUE_NAME, TTS_QUEUE_NAME } from 'src/common/const/queue.const';
 @Module({
   imports: [
     HttpModule,
-    BullModule.forRoot({
-      connection: {
-        host: process.env[ENV_REDIS_HOST_KEY],
-        port: Number(process.env[ENV_REDIS_PORT_KEY] || 6379),
-      },
+    BullModule.forRootAsync({
+      useFactory: () => ({
+        connection: {
+          host: process.env[ENV_REDIS_HOST_KEY],
+          port: Number(process.env[ENV_REDIS_PORT_KEY] || 6379),
+        },
+      }),
     }),
     BullModule.registerQueue(
       {
