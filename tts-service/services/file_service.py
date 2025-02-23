@@ -58,3 +58,25 @@ def check_file_exist_s3(bucket_name: str, object_name: str):
     else:
       print(f"An error occurred: {e}")
       raise
+
+
+def download_from_s3(bucket_name: str, object_name: str, local_filename: str):
+  s3_client = boto3.client(
+      's3',
+      endpoint_url=f'http://{storage_host}:{storage_port}',
+      aws_access_key_id=storage_access_key,
+      aws_secret_access_key=storage_secret_key,
+      use_ssl=False)
+
+  try:
+    s3_client.download_file(Bucket=bucket_name,
+                            Key=object_name,
+                            Filename=local_filename)
+    return True
+  except ClientError as e:
+    if e.response['Error']['Code'] == '404':
+      print(f"Object '{object_name}' does not exist in bucket '{bucket_name}'")
+      return False
+    else:
+      print(f"An error occurred: {e}")
+      raise

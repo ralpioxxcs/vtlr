@@ -229,7 +229,25 @@ export class ScheduleService implements OnModuleInit {
       const updatedEntity = this.scheduleRepository.merge(entity, scheduleDto);
       await this.scheduleRepository.save(updatedEntity);
 
-      await this.jobService.updateCronJob(updatedEntity.id, updatedEntity);
+      await this.jobService.updateCronJob(updatedEntity.id, {
+        jobId: updatedEntity.id,
+        cronExpression: updatedEntity.interval,
+        timeZone: 'Asia/Seoul',
+        priority: this.getPriority(updatedEntity.category),
+        autoRemove: updatedEntity.removeOnComplete || false,
+        startTime:
+          updatedEntity.startTime !== undefined
+            ? new Date(updatedEntity.startTime)
+            : undefined,
+        endTime:
+          updatedEntity.endTime !== undefined
+            ? new Date(updatedEntity.endTime)
+            : undefined,
+        payload: {
+          type: JOB_PAYLOAD.TASK,
+          data: updatedEntity.tasks,
+        },
+      });
 
       return updatedEntity;
     } catch (error) {
@@ -360,7 +378,7 @@ export class ScheduleService implements OnModuleInit {
 
         // 디바이스에 명령 전송
         await this.jobService.createCronJob({
-          jobId: task.id,
+          jobId: schedule.id,
           cronExpression: schedule.interval,
           timeZone: 'Asia/Seoul',
           priority: this.getPriority(schedule.category),

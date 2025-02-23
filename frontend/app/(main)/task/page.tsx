@@ -49,6 +49,7 @@ const periods = [
   { key: "30min", label: "30분마다 알림" },
   { key: "1hour", label: "1시간마다 알림" },
   { key: "2hour", label: "2시간마다 알림" },
+  { key: "1min", label: "1분마다 알림 (테스트용)" },
 ];
 
 const ScheduleItem = React.memo(
@@ -82,9 +83,10 @@ const ScheduleItem = React.memo(
           >
             {schedule.title}
           </Typography>
-          {(schedule.startTime && schedule.endTime) && (
+          {schedule.startTime && schedule.endTime && (
             <Typography className="text-xs text-gray-400">
-              기간: {new Date(schedule.startTime).toLocaleDateString()} ~ {new Date(schedule.endTime).toLocaleDateString()}
+              기간: {new Date(schedule.startTime).toLocaleDateString()} ~{" "}
+              {new Date(schedule.endTime).toLocaleDateString()}
             </Typography>
           )}
         </div>
@@ -145,7 +147,8 @@ const ScheduleItem = React.memo(
                 onMouseLeave={cancelHold}
               >
                 <Checkbox
-                  checked={task.status === "completed"}
+                  lineThrough
+                  isSelected={task.status === "completed"}
                   onClick={(e) => e.stopPropagation()}
                   onChange={() =>
                     handleCheckTask({
@@ -203,11 +206,16 @@ const Home = () => {
   const queryClient = useQueryClient();
 
   const handleCreateSchedule = useMutation({
-    mutationFn: ({ title, description, startDateTime, endDateTime }: {
-      title: string,
-      description: string
-      startDateTime: string,
-      endDateTime: string
+    mutationFn: ({
+      title,
+      description,
+      startDateTime,
+      endDateTime,
+    }: {
+      title: string;
+      description: string;
+      startDateTime: string;
+      endDateTime: string;
     }) => {
       let cronExp = "0 * * * *";
 
@@ -215,11 +223,22 @@ const Home = () => {
         cronExp = "*/30 * * * *";
       } else if (selectKey === "1hour") {
         cronExp = "0 * * * *";
-      } else {
+      } else if (selectKey === "2hour") {
         cronExp = "0 */2 * * *";
+      } else {
+        cronExp = "* * * * *";
       }
 
-      return createSchedule("recurring", "task", title, "", cronExp, false, startDateTime, endDateTime);
+      return createSchedule(
+        "recurring",
+        "task",
+        title,
+        "",
+        cronExp,
+        false,
+        startDateTime,
+        endDateTime,
+      );
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryId] }),
     onError: (error) => console.error("Failed to create a schedule:", error),
@@ -238,7 +257,10 @@ const Home = () => {
   }).mutate;
 
   const handleEditSchedule = useMutation({
-    mutationFn: ({ id }) => updateSchedule(id, {}),
+    mutationFn: ({ id }) => {
+      alert("update!");
+      //updateSchedule(id, {})
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryId] }),
     onError: (error) => console.error("Failed to update the schedule:", error),
     onSettled: () => {
@@ -346,7 +368,7 @@ const Home = () => {
 
     handleCreateSchedule({
       title: data.title as string,
-      description: data.description as string || "description",
+      description: (data.description as string) || "description",
       startDateTime: dateRange.start.toString(),
       endDateTime: dateRange.end.toString(),
     });
@@ -461,8 +483,18 @@ const Home = () => {
                       value={dateRange}
                       onChange={setDateRange}
                     />
-                    <TimeInput size="sm" label="비활성화 시작 시간" labelPlacement="outside" defaultValue={parseTime("22:00")} />
-                    <TimeInput size="sm" label="비활성화 종료 시간" labelPlacement="outside" defaultValue={parseTime("06:00")} />
+                    <TimeInput
+                      size="sm"
+                      label="비활성화 시작 시간"
+                      labelPlacement="outside"
+                      defaultValue={parseTime("22:00")}
+                    />
+                    <TimeInput
+                      size="sm"
+                      label="비활성화 종료 시간"
+                      labelPlacement="outside"
+                      defaultValue={parseTime("06:00")}
+                    />
                   </div>
                 </AccordionItem>
               </Accordion>

@@ -31,13 +31,13 @@ export class JobService {
       },
       {
         name: jobName,
+        data: job.payload,
         opts: {
           attempts: 0,
           priority: job.priority || 0,
-          removeOnComplete: true,
+          removeOnComplete: job.autoRemove,
           removeOnFail: true,
         },
-        data: job.payload,
       },
     );
 
@@ -46,18 +46,39 @@ export class JobService {
     return result;
   }
 
-  async updateCronJob(jobId: string, data: any): Promise<Job> {
-    const result = await this.cronQueue.upsertJobScheduler(
-      jobId,
-      {},
-      {
-        data,
-      },
-    );
+  async updateCronJob(jobId: string, job: CronJob): Promise<Job> {
+    try {
+      const existing = await this.cronQueue.getJobScheduler(jobId);
+      this.logger.debug(`test: ${JSON.stringify(existing, null,2)}`)
 
-    this.logger.log(`update the job successfully (id: ${jobId})`);
+      const result = await this.cronQueue.upsertJobScheduler(
+        job.jobId,
+        {
+          startDate:
+            job.startTime !== undefined ? job.startTime.getTime() : undefined,
+          endDate:
+            job.endTime !== undefined ? job.endTime.getTime() : undefined,
+          pattern: job.cronExpression,
+          tz: job.timeZone || 'Asia/Seoul',
+          count: job.autoRemove ? 1 : 0,
+        },
+        {
+          data: job.payload,
+          opts: {
+            attempts: 0,
+            priority: job.priority || 0,
+            removeOnComplete: job.autoRemove,
+            removeOnFail: false,
+          },
+        },
+      );
 
-    return result;
+      this.logger.log(`update the job successfully (id: ${jobId})`);
+
+      return result;
+    } catch (error) {
+      this.logger.error(error);
+    }
   }
 
   async deleteCronJob(jobId: string): Promise<boolean> {
