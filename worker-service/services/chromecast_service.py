@@ -22,11 +22,14 @@ storage_bucket_name = os.getenv('STORAGE_BUCKET_NAME')
 storage_access_key = os.getenv('STORAGE_ACCESS_KEY')
 storage_secret_key = os.getenv('STORAGE_SECRET_KEY')
 
-def replace_host(url, new_host): 
-    parsed_url = urlparse(url)
-    new_netloc = new_host + (":" + str(parsed_url.port) if parsed_url.port else "")
-    new_url = urlunparse(parsed_url._replace(netloc=new_netloc))
-    return new_url
+
+def replace_host(url, new_host):
+  parsed_url = urlparse(url)
+  new_netloc = new_host + (":" +
+                           str(parsed_url.port) if parsed_url.port else "")
+  new_url = urlunparse(parsed_url._replace(netloc=new_netloc))
+  return new_url
+
 
 def generate_presigned_url(bucket_name,
                            object_name,
@@ -143,9 +146,7 @@ def commandToDevice(name: str, ip: str, volume: int, playId: str):
     return
   print(f'get presignedURL: {url}')
 
-  updated_url = replace_host(url, '192.168.7.3')
-  print(updated_url)
-
+  #updated_url = replace_host(url, '192.168.7.3')
 
   cast.set_volume(volume)
 
@@ -160,7 +161,7 @@ def commandToDevice(name: str, ip: str, volume: int, playId: str):
   #
   # Play media file
   #
-  mediaController.play_media(str(updated_url),
+  mediaController.play_media(str(url),
                              'audio/wav',
                              stream_type=pychromecast.STREAM_TYPE_BUFFERED)
   mediaController.block_until_active()
