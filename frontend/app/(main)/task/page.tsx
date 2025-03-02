@@ -42,7 +42,7 @@ import {
   Checkbox,
   DateRangePicker,
   TimeInput,
-} from "@nextui-org/react";
+} from "@heroui/react";
 import { today, parseTime } from "@internationalized/date";
 
 const periods = [

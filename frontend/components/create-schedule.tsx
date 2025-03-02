@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Modal from "./popup";
 import type { ScheduleList } from "Type";
-import { Button } from "@nextui-org/react";
+import { Button } from "@heroui/react";
 
 interface IButtonProps {
   queryId: string;

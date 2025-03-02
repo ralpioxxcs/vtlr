@@ -35,4 +35,13 @@ declare module "Type" {
     ip: string;
     volume: number;
   };
+
+  type TTS = {
+    id: string;
+    modelName: string;
+    pitch: number;
+    bass: number;
+    treble: number;
+    reverb: number;
+  };
 }

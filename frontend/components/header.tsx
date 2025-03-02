@@ -2,7 +2,7 @@
 
 import React from "react";
 import MenuIcon from "@mui/icons-material/Menu";
-import { Button } from "@nextui-org/react";
+import { Button } from "@heroui/react";
 
 import { Maven_Pro } from "next/font/google";
 

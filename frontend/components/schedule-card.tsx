@@ -1,7 +1,7 @@
 "use client";
 
 import { deleteSchedule, updateSchedule } from "@/pages/api/schedule";
-import { Chip } from "@nextui-org/react";
+import { Chip } from "@heroui/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ScheduleList } from "Type";
 import parser from "cron-parser";

@@ -2,7 +2,7 @@
 
 import { createSchedule } from "@/pages/api/schedule";
 import { getLocalTimeZone, now } from "@internationalized/date";
-import { DatePicker } from "@nextui-org/date-picker";
+import { DatePicker } from "@heroui/date-picker";
 import {
   Button,
   Checkbox,
@@ -10,7 +10,7 @@ import {
   Form,
   Input,
   TimeInput,
-} from "@nextui-org/react";
+} from "@heroui/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ScheduleList } from "Type";
 import type { ReactNode } from "react";

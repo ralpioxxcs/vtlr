@@ -1,39 +1,9 @@
 import { Device, TTS } from "Type";
 
-const baseURL = process.env.NEXT_PUBLIC_DEVICE_SERVER;
+const baseURL = process.env.NEXT_PUBLIC_TTS_SERVER;
 
-export async function getDevice(): Promise<any> {
-  const url = `${baseURL}/v1.0/chromecast/device`;
-
-  try {
-    const response = await fetch(url);
-    console.log(response);
-    const json = await response.json();
-    return json;
-  } catch (err) {
-    console.error(`error is occured (${err})`);
-    throw err;
-  }
-}
-
-export async function getDeviceConnection(deviceId: string): Promise<Device[]> {
-  console.log("deviceId: ", deviceId);
-  const url = `${baseURL}/v1.0/chromecast/device/${deviceId}`;
-
-  try {
-    const response = await fetch(url);
-    const json = await response.json();
-    return json;
-  } catch (err) {
-    console.error(`error is occured (${err})`);
-    throw err;
-  }
-}
-
-export async function getDeviceConfiguration(
-  deviceId: string,
-): Promise<Device[]> {
-  const url = `${baseURL}/v1.0/chromecast/device/${deviceId}/configuration`;
+export async function getTTS(): Promise<any> {
+  const url = `${baseURL}/v1.0/tts`;
 
   try {
     const response = await fetch(url);
@@ -46,16 +16,36 @@ export async function getDeviceConfiguration(
   }
 }
 
-export async function setDeviceConfiguration(
-  deviceId: string,
-  volume: number,
-): Promise<Device[]> {
-  const url = `${baseURL}/v1.0/chromecast/device/${deviceId}/configuration`;
+export async function getTTSConfiguration(ttsId: string): Promise<TTS[]> {
+  console.log("ttsId: ", ttsId);
+  const url = `${baseURL}/v1.0/tts/${ttsId}`;
+
+  try {
+    const response = await fetch(url);
+    console.log("getTTSresponse: ", response);
+    const json = await response.json();
+    return json;
+  } catch (err) {
+    console.error(`error is occured (${err})`);
+    throw err;
+  }
+}
+
+export async function setTTSConfiguration(
+  ttsId: string,
+  pitch: number,
+  bass: number,
+  treble: number,
+  reverb: number,
+): Promise<TTS[]> {
+  const url = `${baseURL}/v1.0/tts/${ttsId}`;
 
   try {
     const data = {
-      deviceId: deviceId,
-      volume: volume,
+      pitch,
+      bass,
+      treble,
+      reverb,
     };
     const response = await fetch(url, {
       method: "PATCH",
@@ -73,16 +63,12 @@ export async function setDeviceConfiguration(
   }
 }
 
-export async function playAudio(
-  deviceId: string,
-  playId: string
-): Promise<any> {
-  const url = `${baseURL}/v1.0/chromecast/device/play`;
+export async function makeSpeech(ttsId: string, text: string): Promise<any> {
+  const url = `${baseURL}/v1.0/tts/${ttsId}/speech`;
 
   try {
     const data = {
-      deviceIds: [deviceId],
-      playId: playId,
+      text: text,
     };
     const response = await fetch(url, {
       method: "POST",
@@ -98,5 +84,4 @@ export async function playAudio(
     console.error(`error is occured (${err})`);
     throw err;
   }
-
 }

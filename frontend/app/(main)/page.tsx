@@ -2,7 +2,7 @@
 
 import ScheduleCard from "@/components/schedule-card";
 import { getScheduleList } from "@/pages/api/schedule";
-import { Spinner } from "@nextui-org/react";
+import { Spinner } from "@heroui/react";
 import { useQuery } from "@tanstack/react-query";
 
 export default function Home() {

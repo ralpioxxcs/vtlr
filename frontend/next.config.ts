@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
     //NEXT_PUBLIC_SCHEDULE_SERVER: "http://api.vutler.io",
     NEXT_PUBLIC_SCHEDULE_SERVER: "http://127.0.0.1:4000",
     NEXT_PUBLIC_DEVICE_SERVER: "http://127.0.0.1:4001",
+    NEXT_PUBLIC_TTS_SERVER: "http://127.0.0.1:4002",
   },
 };
 

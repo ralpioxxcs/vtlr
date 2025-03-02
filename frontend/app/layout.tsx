@@ -3,7 +3,7 @@
 import "./globals.css";
 import { NavigationProvider } from "@/contexts/navigationContext";
 import { TanstackQueryProvider } from "@/contexts/tanstackQueryContext";
-import { NextUIProvider } from "@nextui-org/react";
+import { HeroUIProvider } from "@heroui/react";
 import { Header } from "@/components/header";
 import { useState } from "react";
 import { Sidebar } from "@/components/sidebar";
@@ -39,13 +39,13 @@ const RootLayout = ({ children }: { children: React.ReactNode }) => {
     <html lang="en">
       <link rel="icon" href="/favicon.ico" sizes="any" />
       <body className="font-[Arial,sans-serif]">
-        <NextUIProvider>
+        <HeroUIProvider>
           <NavigationProvider>
             <TanstackQueryProvider>
               <Layout>{children}</Layout>
             </TanstackQueryProvider>
           </NavigationProvider>
-        </NextUIProvider>
+        </HeroUIProvider>
       </body>
     </html>
   );

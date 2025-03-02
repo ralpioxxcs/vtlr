@@ -5,7 +5,7 @@ import {
   getScheduleList,
   updateSchedule,
 } from "@/pages/api/schedule";
-import { Spinner, Textarea } from "@nextui-org/react";
+import { Spinner, Textarea } from "@heroui/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 export default function OnTime() {
