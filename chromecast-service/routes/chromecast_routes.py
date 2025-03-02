@@ -35,7 +35,7 @@ Session = sessionmaker(bind=engine)
 
 
 # Health check
-@bp.route('/', methods=['GET'])
+@bp.route('/health', methods=['GET'])
 def hello():
   return "Hello!"
 
@@ -174,6 +174,7 @@ def commandToDevice():
   playId = data["playId"]
 
   print(f'deviceIds: {deviceIds}')
+  print(f'playId: {playId}')
 
   result = []
 
