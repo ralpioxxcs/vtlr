@@ -16,8 +16,7 @@ sys.path.append(str(submodule_path))
 
 #from melo.api import TTS
 
-
-def generate_tts(voice: str, text: str):
+def generate_tts(voice: str, text: str, audio_config):
   tts_filename = "tts_output.wav"
   tts_dir = tempfile.gettempdir()
   tts_original_filepath = os.path.join(tts_dir, tts_filename)
@@ -35,7 +34,16 @@ def generate_tts(voice: str, text: str):
 
   tts_modified_filepath = os.path.join(os.path.dirname(tts_converted_filepath),
                                        'tts_output_modified.wav')
-  deep_smooth_voice(tts_converted_filepath, tts_modified_filepath)
+
+  print(f"config: {audio_config}")
+  deep_smooth_voice(
+      tts_converted_filepath,
+      tts_modified_filepath,
+      audio_config["pitch"],
+      audio_config["bass"],
+      audio_config["treble"],
+      audio_config["reverb"],
+  )
 
   tts_mixed_filepath = os.path.join(os.path.dirname(tts_converted_filepath),
                                     'tts_output_mixed.mp3')
@@ -45,8 +53,8 @@ def generate_tts(voice: str, text: str):
   mix_audio(bgm_temp_path,
             tts_modified_filepath,
             tts_mixed_filepath,
-            bg_volume=0.1
-            bg_start=9)
+            bg_volume=0.2,
+            bg_start=10)
 
   return tts_mixed_filepath
 
@@ -84,11 +92,15 @@ def convert_audio(input_file: str, output_file: str):
   subprocess.run(cmd, check=True)
 
 
-def deep_smooth_voice(input_file: str, output_file: str):
+def deep_smooth_voice(input_file: str, output_file: str, pitch: int, bass: int,
+                      treble: int, reverb: int):
 
   cmd = [
-      "sox", input_file, output_file, "pitch", "-100", "bass", "+3", "treble",
-      "-4", "vol", "1.2", "reverb", "50"
+      "sox", input_file, output_file, "pitch",
+      str(pitch), "bass",
+      str(bass), "treble",
+      str(treble), "vol", "1.2", "reverb",
+      str(reverb)
   ]
   subprocess.run(cmd, check=True)
 

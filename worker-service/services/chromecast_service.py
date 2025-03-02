@@ -143,7 +143,9 @@ def commandToDevice(name: str, ip: str, volume: int, playId: str):
     return
   print(f'get presignedURL: {url}')
 
-  #updated_url = replace_host(url, '192.168.7.3')
+  updated_url = replace_host(url, '192.168.7.3')
+  print(updated_url)
+
 
   cast.set_volume(volume)
 
@@ -158,7 +160,7 @@ def commandToDevice(name: str, ip: str, volume: int, playId: str):
   #
   # Play media file
   #
-  mediaController.play_media(str(url),
+  mediaController.play_media(str(updated_url),
                              'audio/wav',
                              stream_type=pychromecast.STREAM_TYPE_BUFFERED)
   mediaController.block_until_active()
