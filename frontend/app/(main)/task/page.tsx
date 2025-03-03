@@ -49,7 +49,6 @@ const periods = [
   { key: "30min", label: "30분마다 알림" },
   { key: "1hour", label: "1시간마다 알림" },
   { key: "2hour", label: "2시간마다 알림" },
-  { key: "1min", label: "1분마다 알림 (테스트용)" },
 ];
 
 const ScheduleItem = React.memo(
