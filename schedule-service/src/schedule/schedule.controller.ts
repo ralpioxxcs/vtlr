@@ -4,6 +4,7 @@ import {
   Controller,
   Delete,
   Get,
+  Logger,
   Param,
   Patch,
   Post,
@@ -21,6 +22,8 @@ import { CreateTaskDto } from 'src/task/dto/task.dto';
 @Controller('schedule')
 @UseInterceptors(ClassSerializerInterceptor)
 export class ScheduleController {
+  private readonly logger = new Logger(ScheduleController.name);
+
   constructor(private readonly scheduleService: ScheduleService) {}
 
   @Get()
@@ -37,6 +40,7 @@ export class ScheduleController {
     @Body() createSchedule: CreateScheduleDto,
     @QueryRunner() qr: QR,
   ) {
+    this.logger.debug("createSchedule()");
     return this.scheduleService.createSchedule(createSchedule, qr);
   }
 

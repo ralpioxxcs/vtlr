@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { UserModel } from './entities/user.entity';
 import { QueryRunner, Repository } from 'typeorm';
 import { UserDevicesModel } from './entities/user-devices.entity';
+import { UserTTSModel } from './entities/user-tts.entity';
 
 @Injectable()
 export class UserService {
@@ -13,6 +14,8 @@ export class UserService {
     private readonly userRepository: Repository<UserModel>,
     @InjectRepository(UserDevicesModel)
     private readonly usersDeviceRepository: Repository<UserDevicesModel>,
+    @InjectRepository(UserTTSModel)
+    private readonly usersTTSRepository: Repository<UserTTSModel>,
   ) {}
 
   getRepository(qr?: QueryRunner) {
@@ -38,6 +41,24 @@ export class UserService {
   async findAllDeviceIdsByUserId(userId: string): Promise<string[]> {
     try {
       const rows = await this.usersDeviceRepository.find({
+        where: {
+          userId,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      return rows.map((item) => item.id);
+    } catch (error) {
+      this.logger.error(`Error occurred finding user (err: ${error})`);
+      throw error;
+    }
+  }
+
+  async findAllTTSIdsByUserId(userId: string): Promise<string[]> {
+    try {
+      const rows = await this.usersTTSRepository.find({
         where: {
           userId,
         },

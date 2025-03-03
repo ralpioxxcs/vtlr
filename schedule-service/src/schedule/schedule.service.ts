@@ -71,7 +71,7 @@ export class ScheduleService implements OnModuleInit {
       //  * 스케줄 타입이 "one_time"이면서, 아직 실행 전
       const initSchedules = entities.filter((entity) => {
         if (entity.type === ScheduleType.recurring) {
-          this.logger.debug(`recurring schedule (id: ${entity.id})`);
+          this.logger.debug(`recurring schedule (id: ${entity.id}, title: ${entity.title})`);
           return true;
         }
 
@@ -80,7 +80,7 @@ export class ScheduleService implements OnModuleInit {
           this.isCronExpired(entity.interval) === false
         ) {
           this.logger.debug(
-            `schedule is not expired (cronExp: ${entity.interval}, id: ${entity.id})`,
+            `schedule not expired (id: ${entity.id}, cron: ${entity.interval})`,
           );
           return true;
         }
@@ -88,7 +88,7 @@ export class ScheduleService implements OnModuleInit {
 
       for (const schedule of initSchedules) {
         await this.processSchedule(schedule, schedule.tasks);
-        await this.delay(100); // Job Name 생성시 타임스탬프 중복 방지를 위한 딜레이
+        await this.delay(200); // Job Name 생성시 타임스탬프 중복 방지를 위한 딜레이
       }
 
       await qr.commitTransaction();
@@ -356,11 +356,11 @@ export class ScheduleService implements OnModuleInit {
         priority: this.getPriority(schedule.category),
         autoRemove: schedule.removeOnComplete || false,
         startTime:
-          schedule.startTime !== undefined
+          schedule.startTime !== undefined && schedule.startTime !== null
             ? new Date(schedule.startTime)
             : undefined,
         endTime:
-          schedule.endTime !== undefined
+          schedule.endTime !== undefined && schedule.endTime !== null
             ? new Date(schedule.endTime)
             : undefined,
         payload: {

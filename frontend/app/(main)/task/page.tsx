@@ -20,7 +20,6 @@ import {
   deleteSchedule,
   deleteTask,
   getScheduleList,
-  updateSchedule,
   updateTask,
 } from "@/pages/api/schedule";
 import {
@@ -59,7 +58,6 @@ const ScheduleItem = React.memo(
     handleEditSchedule,
     handleDeleteSchedule,
     handleCheckTask,
-    handleDeleteTask,
     startHold,
     cancelHold,
     isAdding,
@@ -128,7 +126,11 @@ const ScheduleItem = React.memo(
         </Popover>
       </div>
 
-      <Collapse in={expanded[schedule.id]} unmountOnExit timeout={50}>
+      <Collapse
+        in={expanded[schedule.id] || schedule.tasks.length === 0}
+        unmountOnExit
+        timeout={50}
+      >
         <List className="flex flex-col gap-1">
           {schedule.tasks.length === 0 && !isAdding ? (
             <div className="text-center text-gray-500">

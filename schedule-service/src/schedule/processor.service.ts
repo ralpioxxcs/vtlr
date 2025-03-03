@@ -73,6 +73,8 @@ export class CronProcessor extends WorkerHost {
         },
       });
 
+      this.logger.debug(`completed schedule: ${JSON.stringify(schedule)}`);
+
       if (schedule.type === ScheduleType.oneTime && schedule.removeOnComplete) {
         this.logger.log(`schedule (${schedule.id}) will be deleted`);
         await this.scheduleRepository.remove(schedule);
@@ -133,9 +135,12 @@ export class CronProcessor extends WorkerHost {
       text: '',
     };
 
-    if (tasks.every((item) => item.status === TaskStatus.completed)) {
+    if (
+      tasks.every((item: TaskModel) => item.status === TaskStatus.completed)
+    ) {
       // 모든 task가 완료된 경우
       this.logger.log(`all task is done (id: ${scheduleData.id})`);
+
       ttsJob.text = `${schedule.title}에 해당하는 모든 할일이 완료되었습니다. 수고하셨습니다.`;
 
       schedule.active = false;
@@ -150,7 +155,12 @@ export class CronProcessor extends WorkerHost {
       }
       ttsJob.text += `입니다.`;
       if (scheduleData.endTime) {
-        const now = new Date().getTime();
+        const date = new Date();
+        const timeZone = 'Asia/Seoul';
+        const options = { timeZone, hour12: false };
+        const localDate = new Date(date.toLocaleString('en-US', options));
+
+        const now = localDate.getTime();
         const target = new Date(scheduleData.endTime).getTime();
 
         let diffInMillis = target - now;
@@ -253,7 +263,10 @@ export class CronProcessor extends WorkerHost {
 export class TTSProcessor extends WorkerHost {
   private readonly logger = new Logger(CronProcessor.name);
 
-  constructor(private readonly httpService: HttpService) {
+  constructor(
+    private readonly httpService: HttpService,
+    private readonly userService: UserService,
+  ) {
     super();
   }
 

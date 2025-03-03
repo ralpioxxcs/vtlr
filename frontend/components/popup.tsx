@@ -88,6 +88,7 @@ export default function Modal({
         title,
         command,
         cronExp,
+        type === "recurring" ? false : true,
       ),
     onMutate: () => {
       setIsLoading(true);

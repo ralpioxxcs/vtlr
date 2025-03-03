@@ -100,6 +100,7 @@ export class JobService {
     const ttsJobResult = await this.ttsQueue.add(ttsJobName, {
       id: job.jobId,
       text: job.text,
+
     });
 
     this.logger.debug(`tts job added successfully (jobId: ${job.jobId})`);

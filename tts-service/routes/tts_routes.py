@@ -156,6 +156,65 @@ def set_device_configuration(ttsId):
   return ret
 
 
+# Make speech (temp)
+@bp.route('/speech', methods=['POST'])
+def handle_speech_temp():
+  data = request.get_json()
+  if not data:
+    return jsonify({"error": "Invalid or missing JSON payload"}), 400
+
+  playId: str = ""
+  if data.get("playId") is None:
+    playId = str(uuid.uuid4())
+  else:
+    playId = data["playId"]
+
+  text = data["text"]
+
+  print('--------------------------------------------------------------')
+  print(
+      f'{str(datetime.datetime.now())}  handle speech (playId: {playId}, text: {text})'
+  )
+  print('--------------------------------------------------------------')
+
+  # Upload WAV file to Storage bucket
+  bucket_name = 'vtlr-dev-tts-speech'
+  object_name = os.path.join(playId, 'tts.wav')
+
+  if check_file_exist_s3(bucket_name, object_name):
+    print(f'{str(datetime.datetime.now())} file already exists.')
+    return jsonify({"status": "success", "data": True}), 200
+
+  session = Session()
+
+  # Get TTS configuration
+  ttsList = session.query(UserTTS).all()
+  if ttsList is None:
+    return jsonify({"status": "error", "message": "tts not found"}), 404
+
+  tts = ttsList[0]
+
+  print(f'{str(datetime.datetime.now())} starting to create TTS..')
+  audio_config = {
+      "pitch": tts.pitch,
+      "bass": tts.bass,
+      "treble": tts.treble,
+      "reverb": tts.reverb
+  }
+  filepath = generate_tts("google", text, audio_config)
+
+  print(
+      f'{str(datetime.datetime.now())} starting to upload TTS (object name: {object_name})'
+  )
+  success = upload_file_to_s3(filepath, bucket_name, object_name)
+  if success:
+    print(f'{str(datetime.datetime.now())} file upload successful.')
+  else:
+    print(f'{str(datetime.datetime.now())} file upload failed.')
+
+  return jsonify({"status": "success", "data": {"playId": playId}}), 200
+
+
 # Make speech
 @bp.route('/<ttsId>/speech', methods=['POST'])
 def handle_speech(ttsId: str):

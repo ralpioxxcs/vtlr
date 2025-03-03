@@ -18,6 +18,7 @@ import { TaskModule } from './task/task.module';
 import { UserModule } from './user/user.module';
 import { UserModel } from './user/entities/user.entity';
 import { UserDevicesModel } from './user/entities/user-devices.entity';
+import { UserTTSModel } from './user/entities/user-tts.entity';
 
 @Module({
   imports: [
@@ -32,7 +33,13 @@ import { UserDevicesModel } from './user/entities/user-devices.entity';
       username: process.env[ENV_DB_USERNAME_KEY],
       password: process.env[ENV_DB_PASSWORD_KEY],
       database: process.env[ENV_DB_DATABASE_KEY],
-      entities: [ScheduleModel, TaskModel, UserModel, UserDevicesModel],
+      entities: [
+        ScheduleModel,
+        TaskModel,
+        UserModel,
+        UserDevicesModel,
+        UserTTSModel,
+      ],
       //synchronize: true,
     }),
     ScheduleModule,
