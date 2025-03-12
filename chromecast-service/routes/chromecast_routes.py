@@ -180,29 +180,28 @@ def commandToDevice():
 
   for deviceId in deviceIds:
     print(f'search device by id ({deviceId})')
-    device = session.query(UserDevices).filter(deviceId == deviceId).one()
-
+    device = session.query(UserDevices).filter_by(id=deviceId).first()
     if device is None:
       result.append({"id": deviceId, "status": "failed"})
+    else:
+      try:
+        job = queue.enqueue(
+            "services.chromecast_service.process_chromecast_request", {
+                "playId": playId,
+                "device": {
+                    "name": device.device_name,
+                    "ip": device.ip_address,
+                    "volume": device.volume / 100
+                },
+            })
 
-    try:
-      job = queue.enqueue(
-          "services.chromecast_service.process_chromecast_request", {
-              "playId": playId,
-              "device": {
-                  "name": device.device_name,
-                  "ip": device.ip_address,
-                  "volume": device.volume / 100
-              },
-          })
+        print(f'job is enqueued successfully (id: {job.id})')
 
-      print(f'job is enqueued successfully (id: {job.id})')
-
-      result.append({"id": deviceId, "status": "success"})
-    except Exception as e:
-      return jsonify({"status": "error", "message": str(e)}), 500
-    finally:
-      session.close()
+        result.append({"id": deviceId, "status": "success"})
+      except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+      finally:
+        session.close()
 
   return jsonify({"status": "success", "data": result}), 202
 

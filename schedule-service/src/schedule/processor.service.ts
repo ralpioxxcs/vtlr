@@ -67,9 +67,12 @@ export class CronProcessor extends WorkerHost {
     //  * recurring, on_time: 삭제 X
     //  * one_time: 삭제 O
     try {
+      this.logger.debug(`job: ${JSON.stringify(job, null, 2)}`);
+
+      this.logger.log(`find parent schedule (id: ${job.data.scheduleId})`);
       const schedule = await this.scheduleRepository.findOne({
         where: {
-          id: job.data.scheduleId,
+          id: job.data.data.scheduleId,
         },
       });
 
