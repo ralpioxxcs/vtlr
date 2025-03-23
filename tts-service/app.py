@@ -17,4 +17,4 @@ CORS(app)
 app.register_blueprint(tts_routes.bp)
 
 if __name__ == '__main__':
-    app.run(debug=False, host='0.0.0.0', port=4002)
+    app.run(debug=True, host='0.0.0.0', port=4002)

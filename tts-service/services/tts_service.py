@@ -8,6 +8,7 @@ import ffmpeg
 from pathlib import Path
 
 from gtts import gTTS
+from google.cloud import texttospeech
 
 from services.file_service import download_from_s3
 
@@ -28,41 +29,49 @@ def generate_tts(voice: str, text: str, audio_config):
   else:
     print('not supported voice')
 
-  tts_converted_filepath = os.path.join(os.path.dirname(tts_original_filepath),
-                                        'tts_output_converted.wav')
+  tts_converted_filepath = os.path.join(os.path.dirname(tts_original_filepath), 'tts_output_converted.mp3')
+
   convert_audio(tts_original_filepath, tts_converted_filepath)
 
-  tts_modified_filepath = os.path.join(os.path.dirname(tts_converted_filepath),
-                                       'tts_output_modified.wav')
+  # print(f"config: {audio_config}")
+  # deep_smooth_voice(
+  #     tts_converted_filepath,
+  #     tts_modified_filepath,
+  #     audio_config["pitch"],
+  #     audio_config["bass"],
+  #     audio_config["treble"],
+  #     audio_config["reverb"],
+  # )
+  #
+  # tts_mixed_filepath = os.path.join(os.path.dirname(tts_converted_filepath), 'tts_output_mixed.mp3')
 
-  print(f"config: {audio_config}")
-  deep_smooth_voice(
-      tts_converted_filepath,
-      tts_modified_filepath,
-      audio_config["pitch"],
-      audio_config["bass"],
-      audio_config["treble"],
-      audio_config["reverb"],
-  )
+  # bgm_temp_path = "/tmp/chillguy.mp3"
+  # download_from_s3("vtlr-dev-stock-bgm", "chillguy.mp3", bgm_temp_path)
+  # mix_audio(bgm_temp_path,
+  #           tts_modified_filepath,
+  #           tts_mixed_filepath,
+  #           bg_volume=0.2,
+  #           bg_start=10)
 
-  tts_mixed_filepath = os.path.join(os.path.dirname(tts_converted_filepath),
-                                    'tts_output_mixed.mp3')
+  print(f'path: {tts_converted_filepath}')
 
-  bgm_temp_path = "/tmp/chillguy.mp3"
-  download_from_s3("vtlr-dev-stock-bgm", "chillguy.mp3", bgm_temp_path)
-  mix_audio(bgm_temp_path,
-            tts_modified_filepath,
-            tts_mixed_filepath,
-            bg_volume=0.2,
-            bg_start=10)
+  return tts_converted_filepath 
 
-  return tts_mixed_filepath
-
-
-def google_tts(text: str, save_to: str):
+def _google_tts(text: str, save_to: str):
   tts = gTTS(text, lang='ko', slow=False)
   tts.save(save_to)
 
+
+def google_tts(text: str, save_to: str):
+  client = texttospeech.TextToSpeechClient()
+  synthesis_input = texttospeech.SynthesisInput(text=text)
+  voice = texttospeech.VoiceSelectionParams(language_code="ko-KR", name="ko-KR-Chirp3-HD-Leda")
+  audio_config = texttospeech.AudioConfig(audio_encoding=texttospeech.AudioEncoding.MP3)
+
+  response = client.synthesize_speech(input=synthesis_input, voice=voice, audio_config=audio_config)
+
+  with open(save_to, "wb") as out:
+    out.write(response.audio_content)
 
 # def melo_tts(text: str, save_to: str):
 #   lang = 'KR'
@@ -86,9 +95,7 @@ def google_tts(text: str, save_to: str):
 
 
 def convert_audio(input_file: str, output_file: str):
-  cmd = [
-      "ffmpeg", "-i", input_file, "-ar", "16000", "-ac", "1", "-y", output_file
-  ]
+  cmd = [ "ffmpeg", "-i", input_file, "-ar", "16000", "-ac", "1", "-y", "-q:a", "2", output_file ]
   subprocess.run(cmd, check=True)
 
 
