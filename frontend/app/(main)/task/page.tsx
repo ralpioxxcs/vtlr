@@ -45,9 +45,10 @@ import {
 import { today, parseTime } from "@internationalized/date";
 
 const periods = [
-  { key: "30min", label: "30분마다 알림" },
-  { key: "1hour", label: "1시간마다 알림" },
-  { key: "2hour", label: "2시간마다 알림" },
+  { key: "30min", label: "30분 간격 " },
+  { key: "1hour", label: "1시간 간격" },
+  { key: "2hour", label: "2시간 간격" },
+  { key: "3hour", label: "3시간 간격" },
 ];
 
 const ScheduleItem = React.memo(
@@ -226,6 +227,8 @@ const Home = () => {
         cronExp = "0 * * * *";
       } else if (selectKey === "2hour") {
         cronExp = "0 */2 * * *";
+      } else if (selectKey === "3hour") {
+        cronExp = "0 */3 * * *";
       } else {
         cronExp = "* * * * *";
       }
@@ -459,7 +462,7 @@ const Home = () => {
                 isRequired
                 className="max-w-xs"
                 labelPlacement="outside"
-                label="알람 시간"
+                label="알람 간격"
                 defaultSelectedKeys={["1hour"]}
                 onChange={(e) => {
                   setValue(e.target.value);
