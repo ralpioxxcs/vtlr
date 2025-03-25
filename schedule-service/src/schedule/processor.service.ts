@@ -159,9 +159,9 @@ export class CronProcessor extends WorkerHost {
       ttsJob.text += `입니다.`;
       if (scheduleData.endTime) {
         const date = new Date();
-        const timeZone = 'Asia/Seoul';
-        const options = { timeZone, hour12: false };
-        const localDate = new Date(date.toLocaleString('en-US', options));
+        const localDate = new Date(
+          date.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }),
+        );
 
         const now = localDate.getTime();
         const target = new Date(scheduleData.endTime).getTime();
