@@ -12,18 +12,17 @@ from google.cloud import texttospeech
 
 from services.file_service import download_from_s3
 
-submodule_path = Path(__file__).resolve().parent / "../external/melo"
-sys.path.append(str(submodule_path))
-
+#submodule_path = Path(__file__).resolve().parent / "../external/melo"
+#sys.path.append(str(submodule_path))
 #from melo.api import TTS
 
-def generate_tts(voice: str, text: str, audio_config):
+def generate_tts(voice: str, text: str, speaker: str, audio_config):
   tts_filename = "tts_output.wav"
   tts_dir = tempfile.gettempdir()
   tts_original_filepath = os.path.join(tts_dir, tts_filename)
 
   if voice == "google":
-    google_tts(text, tts_original_filepath)
+    google_tts(text, speaker, tts_original_filepath)
   # elif voice == "hong":
   #   melo_tts(text, tts_original_filepath)
   else:
@@ -62,10 +61,10 @@ def _google_tts(text: str, save_to: str):
   tts.save(save_to)
 
 
-def google_tts(text: str, save_to: str):
+def google_tts(text: str, speaker: str, save_to: str):
   client = texttospeech.TextToSpeechClient()
   synthesis_input = texttospeech.SynthesisInput(text=text)
-  voice = texttospeech.VoiceSelectionParams(language_code="ko-KR", name="ko-KR-Chirp3-HD-Leda")
+  voice = texttospeech.VoiceSelectionParams(language_code="ko-KR", name=speaker)
   audio_config = texttospeech.AudioConfig(audio_encoding=texttospeech.AudioEncoding.MP3)
 
   response = client.synthesize_speech(input=synthesis_input, voice=voice, audio_config=audio_config)
@@ -116,6 +115,19 @@ def get_audio_duration(file_path):
   probe = ffmpeg.probe(file_path)
   duration = float(probe['format']['duration'])
   return duration
+
+def get_available_speakers():
+    client = texttospeech.TextToSpeechClient()
+    voices = client.list_voices(language_code='ko-KR')
+
+    speakers = []
+    for voice in voices.voices:
+        speakers.append({
+            'name': voice.name,
+            'gender': texttospeech.SsmlVoiceGender(voice.ssml_gender).name
+        })
+
+    return speakers
 
 
 def mix_audio(background_path,

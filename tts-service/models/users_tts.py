@@ -15,6 +15,7 @@ class UserTTS(Base):
               server_default=text("uuid_generate_v4()"))
   user_id = Column(UUID(as_uuid=True), nullable=False)
   model_name = Column(String(128), nullable=True)
+  speaker = Column(String(128), nullable=True)
   pitch = Column(Integer, nullable=True, default=0)
   bass = Column(Integer, nullable=True, default=0)
   treble = Column(Integer, nullable=True, default=0)
@@ -32,6 +33,7 @@ class UserTTS(Base):
         'id': self.id,
         'user_id': self.user_id,
         'model_name': self.model_name,
+        'speaker': self.speaker,
         'pitch': self.pitch,
         'bass': self.bass,
         'treble': self.treble,

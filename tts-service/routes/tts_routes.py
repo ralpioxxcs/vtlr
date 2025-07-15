@@ -11,7 +11,7 @@ from pathlib import Path
 
 from models.users_tts import UserTTS
 from services.file_service import check_file_exist_s3, upload_file_to_s3
-from services.tts_service import generate_tts
+from services.tts_service import generate_tts, get_available_speakers
 
 import datetime
 
@@ -66,7 +66,7 @@ def make_tts():
 
   session = Session()
 
-  newTTS = UserTTS(user_id=data["user_id"], model_name=data["model"])
+  newTTS = UserTTS(user_id=data["user_id"], model_name=data["model"], speaker=data["speaker"])
 
   try:
     session.add(newTTS)
@@ -107,6 +107,7 @@ def get_device_configuration(ttsId):
       "data": {
           "ttsId": tts.id,
           "model_name": tts.model_name,
+          "speaker": tts.speaker,
           "pitch": tts.pitch,
           "bass": tts.bass,
           "treble": tts.treble,
@@ -136,6 +137,7 @@ def set_device_configuration(ttsId):
   tts.bass = data["bass"]
   tts.treble = data["treble"]
   tts.reverb = data["reverb"]
+  tts.speaker = data["speaker"]
 
   session.commit()
 
@@ -144,6 +146,7 @@ def set_device_configuration(ttsId):
       "data": {
           "ttsId": tts.id,
           "model_name": tts.model_name,
+          "speaker": tts.speaker,
           "pitch": tts.pitch,
           "bass": tts.bass,
           "treble": tts.treble,
@@ -193,6 +196,7 @@ def handle_speech_temp():
     return jsonify({"status": "error", "message": "tts not found"}), 404
 
   tts = ttsList[0]
+  speaker = tts.speaker if tts.speaker else 'ko-KR-Chirp3-HD-Charon'
 
   print(f'{str(datetime.datetime.now())} starting to create TTS..')
   audio_config = {
@@ -201,7 +205,7 @@ def handle_speech_temp():
       "treble": tts.treble,
       "reverb": tts.reverb
   }
-  filepath = generate_tts("google", text, audio_config)
+  filepath = generate_tts("google", text, tts.speaker, audio_config)
 
   print(
       f'{str(datetime.datetime.now())} starting to upload TTS (object name: {object_name})'
@@ -251,6 +255,8 @@ def handle_speech(ttsId: str):
   if tts is None:
     return jsonify({"status": "error", "message": "tts not found"}), 404
 
+  speaker = tts.speaker if tts.speaker else 'ko-KR-Chirp3-HD-Charon'
+
   print(f'{str(datetime.datetime.now())} starting to create TTS..')
   audio_config = {
       "pitch": tts.pitch,
@@ -258,7 +264,7 @@ def handle_speech(ttsId: str):
       "treble": tts.treble,
       "reverb": tts.reverb
   }
-  filepath = generate_tts("google", text, audio_config)
+  filepath = generate_tts("google", text, speaker, audio_config)
 
   print(
       f'{str(datetime.datetime.now())} starting to upload TTS (object name: {object_name})'
@@ -270,3 +276,10 @@ def handle_speech(ttsId: str):
     print(f'{str(datetime.datetime.now())} file upload failed.')
 
   return jsonify({"status": "success", "data": {"playId": playId}}), 200
+
+
+# Get available speakers
+@bp.route('/speakers', methods=['GET'])
+def get_speakers():
+    speakers = get_available_speakers()
+    return jsonify({"status": "success", "data": speakers}), 200
