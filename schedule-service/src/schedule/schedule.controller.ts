@@ -40,7 +40,7 @@ export class ScheduleController {
     @Body() createSchedule: CreateScheduleDto,
     @QueryRunner() qr: QR,
   ) {
-    this.logger.debug("createSchedule()");
+    this.logger.debug('createSchedule()');
     return this.scheduleService.createSchedule(createSchedule, qr);
   }
 
@@ -57,7 +57,7 @@ export class ScheduleController {
   @Patch('/:scheduleId')
   async patchSchedule(
     @Param('scheduleId') scheduleId: string,
-    @Body() updateSchedule: UpdateScheduleDto,
+    @Body() updateSchedule: UpdateScheduleDto & { command?: string },
   ) {
     return this.scheduleService.updateSchedule(scheduleId, updateSchedule);
   }

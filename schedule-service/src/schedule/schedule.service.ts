@@ -211,7 +211,7 @@ export class ScheduleService implements OnModuleInit {
 
   async updateSchedule(
     id: string,
-    scheduleDto: UpdateScheduleDto,
+    scheduleDto: UpdateScheduleDto & { command?: string },
   ): Promise<ScheduleModel> {
     this.logger.log(`update the schedule (id: ${id})`);
 
@@ -220,10 +220,19 @@ export class ScheduleService implements OnModuleInit {
         where: {
           id: id,
         },
+        relations: ["tasks"],
       });
 
       if (!entity) {
-        throw new NotFoundException('not found schedule corresponding id');
+        throw new NotFoundException("not found schedule corresponding id");
+      }
+
+      if (scheduleDto.command && entity.tasks.length > 0) {
+        this.logger.debug(`Updating task with command: ${scheduleDto.command}`);
+        const taskToUpdate = entity.tasks[0];
+        await this.taskService.updateTask(taskToUpdate.id, {
+          text: scheduleDto.command,
+        });
       }
 
       const updatedEntity = this.scheduleRepository.merge(entity, scheduleDto);

@@ -67,6 +67,7 @@ export class TaskService {
 
   async updateTask(id: string, taskDto: UpdateTaskDto): Promise<TaskModel> {
     try {
+      this.logger.log(`update task id: ${id}, ${JSON.stringify(taskDto, null, 2)}`);
       const entity = await this.taskRepository.findOne({
         where: {
           id,

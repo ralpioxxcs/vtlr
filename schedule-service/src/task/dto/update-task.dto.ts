@@ -6,6 +6,5 @@ import { TaskStatus } from '../enum/task.enum';
 export class UpdateTaskDto extends PartialType(CreateTaskDto) {
   @IsEnum(TaskStatus)
   @IsOptional()
-  status: string
-
+  status?: string
 }
