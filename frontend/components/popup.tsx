@@ -1,6 +1,6 @@
 "use client";
 
-import { createSchedule } from "@/pages/api/schedule";
+import { createSchedule, updateSchedule } from "@/pages/api/schedule";
 import { getLocalTimeZone, now } from "@internationalized/date";
 import { DatePicker } from "@heroui/date-picker";
 import {
@@ -21,6 +21,12 @@ interface ModalProps {
   queryId: string;
   type: ScheduleList["type"];
   children: ReactNode;
+  schedule?: {
+    id: string;
+    title: string;
+    command: string;
+    interval: string;
+  };
 }
 
 const datetimeToCron = (datetime: string) => {
@@ -68,8 +74,39 @@ export default function Modal({
   queryId,
   type,
   children,
+  schedule,
 }: ModalProps) {
   const [isLoading, setIsLoading] = useState(false);
+
+  const cronToTime = (cron: string) => {
+    const [minute, hour] = cron.split(" ");
+    return `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}`;
+  };
+
+  const cronToDays = (cron: string) => {
+    const dayOfWeek = cron.split(" ")[4];
+    if (dayOfWeek === "*") return [];
+    return dayOfWeek.split(",").map((d) => {
+      switch (d) {
+        case "0":
+          return "sun";
+        case "1":
+          return "mon";
+        case "2":
+          return "tue";
+        case "3":
+          return "wed";
+        case "4":
+          return "thu";
+        case "5":
+          return "fri";
+        case "6":
+          return "sat";
+        default:
+          return "";
+      }
+    });
+  };
 
   const queryClient = useQueryClient();
   const { mutate: handleCreate } = useMutation({
@@ -101,6 +138,32 @@ export default function Modal({
     },
   });
 
+  const { mutate: handleUpdate } = useMutation({
+    mutationFn: ({
+      title,
+      command,
+      cronExp,
+    }: {
+      title: string;
+      command: string;
+      cronExp: string;
+    }) =>
+      updateSchedule(schedule.id, {
+        title,
+        command,
+        interval: cronExp,
+      }),
+    onMutate: () => {
+      setIsLoading(true);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryId] }),
+    onError: (error) => console.error("Failed to update schedule:", error),
+    onSettled: () => {
+      setIsLoading(false);
+      onClose();
+    },
+  });
+
   const handleForward = async (
     title: string,
     command: string,
@@ -114,7 +177,11 @@ export default function Modal({
       } else if (daysOfWeek && type === "recurring") {
         cronExp = generateCronExpression(daysOfWeek, datetime);
       }
-      handleCreate({ title, command, cronExp });
+      if (schedule) {
+        handleUpdate({ title, command, cronExp });
+      } else {
+        handleCreate({ title, command, cronExp });
+      }
     } catch (error) {
       console.error("Failed to create schedule:", error);
     }
@@ -143,7 +210,7 @@ export default function Modal({
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center"
+      className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"
       onClick={onClose}
     >
       <meta
@@ -169,6 +236,7 @@ export default function Modal({
               name="title"
               placeholder="이벤트 제목을 입력하세요"
               type="text"
+              defaultValue={schedule?.title}
             />
 
             <Input
@@ -178,6 +246,7 @@ export default function Modal({
               name="command"
               placeholder="버틀러가 말할 문장을 입력하세요 🗣️"
               type="text"
+              defaultValue={schedule?.command}
               validate={(value) => {
                 if (value.length == 1) {
                   return "명령어는 1 글자 이상 작성하세요";
@@ -226,6 +295,7 @@ export default function Modal({
                   name="days"
                   orientation="horizontal"
                   radius="full"
+                  defaultValue={schedule ? cronToDays(schedule.interval) : []}
                   validate={(value) => {
                     if (value.length < 1) {
                       return "1개 이상의 요일을 선택하세요";
@@ -250,7 +320,13 @@ export default function Modal({
                 color="primary"
                 type="submit"
               >
-                {isLoading ? "생성중.." : "만들기"}
+                {isLoading
+                  ? schedule
+                    ? "수정중.."
+                    : "생성중.."
+                  : schedule
+                    ? "수정하기"
+                    : "만들기"}
               </Button>
               <Button type="reset" variant="bordered">
                 초기화

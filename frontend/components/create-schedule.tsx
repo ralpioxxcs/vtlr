@@ -9,12 +9,14 @@ interface IButtonProps {
   queryId: string;
   title: string;
   scheduleType: ScheduleList["type"];
+  schedule?: any;
 }
 
 export default function CreateButton({
   queryId,
   title,
   scheduleType,
+  schedule,
 }: IButtonProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -33,7 +35,12 @@ export default function CreateButton({
         {title}
       </Button>
       {isModalOpen && (
-        <Modal onClose={closeModal} queryId={queryId} type={scheduleType}>
+        <Modal
+          onClose={closeModal}
+          queryId={queryId}
+          type={scheduleType}
+          schedule={schedule}
+        >
           {scheduleType === "recurring" ? "루틴 생성하기" : "이벤트 생성하기"}
         </Modal>
       )}
