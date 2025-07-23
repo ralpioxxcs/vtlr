@@ -1,12 +1,12 @@
 "use client";
 
 import { deleteSchedule, updateSchedule } from "@/pages/api/schedule";
-import { Chip } from "@heroui/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ScheduleList } from "Type";
 import parser from "cron-parser";
 import Modal from "./popup";
 import { useState } from "react";
+import { TrashIcon, ClockIcon } from "@heroicons/react/24/outline";
 
 interface ScheduleProps {
   queryId: string;
@@ -52,19 +52,23 @@ export const describeCronExpression = (expression: string) => {
     let schedule = "";
 
     if (dayOfWeek !== "*") {
-      const days = [
-        "일요일",
-        "월요일",
-        "화요일",
-        "수요일",
-        "목요일",
-        "금요일",
-        "토요일",
-      ];
-      schedule = `매주 ${dayOfWeek
+      const dayNumbers = dayOfWeek
         .split(",")
-        .map((d) => days[parseInt(d)])
-        .join(", ")}`;
+        .map((d) => parseInt(d))
+        .sort((a, b) => a - b);
+      const daySet = new Set(dayNumbers);
+
+      if (
+        daySet.size === 5 &&
+        [1, 2, 3, 4, 5].every((day) => daySet.has(day))
+      ) {
+        schedule = "매주 주중";
+      } else if (daySet.size === 2 && [0, 6].every((day) => daySet.has(day))) {
+        schedule = "매주 주말";
+      } else {
+        const days = ["일", "월", "화", "수", "목", "금", "토"];
+        schedule = `매주 ${dayNumbers.map((d) => days[d]).join(", ")}`;
+      }
     } else if (dayOfMonth !== "*") {
       schedule = `매월 ${dayOfMonth}일`;
     } else if (month !== "*") {
@@ -95,7 +99,6 @@ export default function ScheduleCard({
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
 
-  const nextExecDate = parseCronExpression(interval);
   const cron = describeCronExpression(interval);
 
   const queryClient = useQueryClient();
@@ -111,119 +114,57 @@ export default function ScheduleCard({
     onError: (error) => console.error("Failed to update schedule:", error),
   });
 
-  const { mutate: handleRemoveToggle } = useMutation({
-    mutationFn: () =>
-      updateSchedule(id, { removeOnComplete: !removeOnComplete }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryId] }),
-    onError: (error) => console.error("Failed to update schedule:", error),
-  });
-
   return (
     <>
       <div
         onClick={openModal}
-        className="relative w-full h-full mx-auto my-2 bg-white shadow-lg rounded-lg border border-slate-400 overflow-hidden cursor-pointer"
+        className="flex items-center p-4 my-2 bg-white shadow-md rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50"
       >
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            handleActiveToggle();
+          }}
+          className={`w-4 h-4 rounded-full mr-4 flex-shrink-0 ${
+            active ? "bg-green-500" : "bg-gray-300"
+          }`}
+        ></div>
+        <div className="flex-grow min-w-0">
+          <div className="flex-grow min-w-0">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-800 truncate">
+              {title}
+            </h2>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDelete();
+              }}
+              className="p-2 text-gray-400 hover:text-red-500 ml-2 flex-shrink-0 md:hidden"
+            >
+              <TrashIcon className="w-5 h-5" />
+            </button>
+          </div>
+          <p className="text-sm text-gray-500 mt-1 truncate">{command}</p>
+          <div className="flex items-center mt-2">
+            <div className="flex items-center text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded-full">
+              <ClockIcon className="w-4 h-4 mr-1 text-gray-500" />
+              <span>{cron}</span>
+            </div>
+          </div>
+        </div>
+        </div>
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
             handleDelete();
           }}
-          className="absolute top-2 right-2 text-gray-300 hover:text-gray-700 text-xl font-bold"
+          className="p-2 text-gray-400 hover:text-red-500 ml-auto flex-shrink-0"
         >
-          &times;
+          <TrashIcon className="w-5 h-5" />
         </button>
-        <div className="p-4">
-          <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
-          <p className="text-xs text-gray-600 mt-2">{command}</p>
-
-          {/* Details */}
-          <div className="mt-4">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-500">유형:</span>
-              <span className="text-sm font-medium text-gray-700">
-                {type === "recurring" ? (
-                  <Chip size="sm" color="danger" radius="md" variant="flat">
-                    루틴
-                  </Chip>
-                ) : (
-                  <Chip size="sm" color="warning" radius="md" variant="flat">
-                    이벤트
-                  </Chip>
-                )}
-              </span>
-            </div>
-
-            {
-              <div className="flex justify-between items-center mt-2">
-                <span className="text-sm text-gray-500 w-28">
-                  다음 실행될 시간:
-                </span>
-                <span className="text-sm font-medium text-gray-700">
-                  {nextExecDate}
-                </span>
-              </div>
-            }
-
-            {type === "recurring" && (
-              <div className="flex justify-between items-center mt-2">
-                <span className="text-sm text-gray-500 w-24">반복 주기:</span>
-                <span className="text-sm font-medium text-gray-700 text-right">
-                  {cron}
-                </span>
-              </div>
-            )}
-
-            <div className="flex justify-between items-center mt-2">
-              <label htmlFor="toggle" className="text-sm text-gray-500">
-                활성화:
-              </label>
-              <button
-                type="button"
-                id="toggle"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleActiveToggle();
-                }}
-                className={`w-8 h-4 flex items-center rounded-full cursor-pointer p-1 transition-colors ${
-                  active ? "bg-teal-600" : "bg-gray-300"
-                }`}
-              >
-                <span
-                  className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${
-                    active ? "translate-x-3.5" : "translate-x-0"
-                  }`}
-                />
-              </button>
-            </div>
-
-            {type === "one_time" && (
-              <div className="flex justify-between items-center mt-2">
-                <label htmlFor="toggle" className="text-sm text-gray-500">
-                  자동 삭제:
-                </label>
-                <button
-                  type="button"
-                  id="toggle"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRemoveToggle();
-                  }}
-                  className={`w-8 h-4 flex items-center rounded-full cursor-pointer p-1 transition-colors ${
-                    removeOnComplete ? "bg-teal-600" : "bg-gray-300"
-                  }`}
-                >
-                  <span
-                    className={`w-3 h-3 bg-white rounded-full shadow-md transform transition-transform ${
-                      removeOnComplete ? "translate-x-3.5" : "translate-x-0"
-                    }`}
-                  />
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
       </div>
       {isModalOpen && (
         <Modal

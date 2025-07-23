@@ -31,12 +31,7 @@ export default function Home() {
     <div className="grow p-4 flex flex-col">
       <h1 className="text-xl font-semibold mb-4 text-center">모든 일정</h1>
       {data && data.length > 0 ? (
-        <div
-          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3"
-          style={{
-            gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-          }}
-        >
+        <div className="space-y-2">
           {data.map((schedule: any) => (
             <ScheduleCard
               key={schedule.id}

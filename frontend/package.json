@@ -11,6 +11,7 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
+    "@heroicons/react": "^2.2.0",
     "@heroui/card": "2.2.14",
     "@heroui/checkbox": "2.3.14",
     "@heroui/date-picker": "2.3.15",
