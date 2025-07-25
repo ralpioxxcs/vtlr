@@ -161,6 +161,37 @@ def getDeviceConnectivity(deviceId):
   return ret
 
 
+# Update device
+@bp.route('/device/<deviceId>', methods=['PATCH'])
+def update_device(deviceId):
+  data = request.get_json()
+  if not data:
+    return jsonify({"error": "Invalid or missing JSON payload"}), 400
+
+  session = Session()
+
+  device = session.query(UserDevices).filter_by(id=deviceId).first()
+  if device is None:
+    return jsonify({"status": "error", "message": "device not found"}), 404
+
+  if 'device_name' in data:
+    device.device_name = data['device_name']
+  if 'ip_address' in data:
+    device.ip_address = data['ip_address']
+
+  try:
+    session.commit()
+    return jsonify({
+        "status": "success",
+        "data": device.to_dict()
+    }), 200
+  except Exception as e:
+    session.rollback()
+    return jsonify({"status": "error", "message": str(e)}), 500
+  finally:
+    session.close()
+
+
 # Command to device
 @bp.route('/device/play', methods=['POST'])
 def commandToDevice():
