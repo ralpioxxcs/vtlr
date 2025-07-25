@@ -28,10 +28,10 @@ export default function Home() {
   }
 
   return (
-    <div className="grow p-4 flex flex-col">
+    <div className="p-4 flex flex-col">
       <h1 className="text-xl font-semibold mb-4 text-center">모든 일정</h1>
       {data && data.length > 0 ? (
-        <div className="space-y-2">
+        <div className="grid grid-cols-1 gap-2">
           {data.map((schedule: any) => (
             <ScheduleCard
               key={schedule.id}

@@ -15,9 +15,11 @@ import SettingsIcon from "@mui/icons-material/Settings";
 export const Sidebar = ({
   isNavVisible,
   toggleNav,
+  isDesktop,
 }: {
   isNavVisible: boolean;
   toggleNav: () => void;
+  isDesktop: boolean;
 }) => {
   const pathname = usePathname();
 
@@ -30,6 +32,12 @@ export const Sidebar = ({
     { label: "설정", path: "/setting", icon: <SettingsIcon /> },
   ];
 
+  const handleLinkClick = () => {
+    if (!isDesktop) {
+      toggleNav();
+    }
+  };
+
   return (
     <nav
       className={`${
@@ -41,29 +49,17 @@ export const Sidebar = ({
           <li key={item.path}>
             <Link
               href={item.path}
+              onClick={handleLinkClick}
               className={`block w-full rounded-xl ${
                 pathname === item.path ? "bg-zinc-600" : "hover:bg-zinc-700"
               }`}
             >
               <button
                 type="button"
-                className={`flex w-full ${
-                  isNavVisible
-                    ? "flex-col items-center justify-center h-16"
-                    : "items-center gap-4 h-12 px-4"
-                }`}
+                className="flex flex-col items-center justify-center h-16 w-full"
               >
                 {item.icon}
-                {isNavVisible && (
-                  <span className="text-xs text-gray-400 mt-1">
-                    {item.label}
-                  </span>
-                )}
-                {!isNavVisible && (
-                  <span className="text-sm text-gray-300 mt-1">
-                    {item.label}
-                  </span>
-                )}
+                <span className="text-xs text-gray-400 mt-1">{item.label}</span>
               </button>
             </Link>
           </li>

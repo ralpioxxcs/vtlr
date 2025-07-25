@@ -58,7 +58,9 @@ export const describeCronExpression = (expression: string) => {
         .sort((a, b) => a - b);
       const daySet = new Set(dayNumbers);
 
-      if (
+      if (daySet.size === 7) {
+        schedule = "매일";
+      } else if (
         daySet.size === 5 &&
         [1, 2, 3, 4, 5].every((day) => daySet.has(day))
       ) {
@@ -99,7 +101,7 @@ export default function ScheduleCard({
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
 
-  const cron = describeCronExpression(interval);
+  const displayTime = type === "one_time" ? parseCronExpression(interval) : describeCronExpression(interval);
 
   const queryClient = useQueryClient();
   const { mutate: handleDelete } = useMutation({
@@ -118,7 +120,7 @@ export default function ScheduleCard({
     <>
       <div
         onClick={openModal}
-        className="flex items-center p-4 my-2 bg-white shadow-md rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50"
+        className="flex items-center p-4 my-2 bg-white shadow-md rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 h-32"
       >
         <div
           onClick={(e) => {
@@ -129,31 +131,30 @@ export default function ScheduleCard({
             active ? "bg-green-500" : "bg-gray-300"
           }`}
         ></div>
-        <div className="flex-grow min-w-0">
-          <div className="flex-grow min-w-0">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-800 truncate">
-              {title}
-            </h2>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDelete();
-              }}
-              className="p-2 text-gray-400 hover:text-red-500 ml-2 flex-shrink-0 md:hidden"
-            >
-              <TrashIcon className="w-5 h-5" />
-            </button>
+        <div className="flex flex-col justify-between flex-grow min-w-0 h-full py-1">
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-gray-800 truncate">
+                {title}
+              </h2>
+              {type === "recurring" ? (
+                <span className="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                  루틴
+                </span>
+              ) : (
+                <span className="text-xs font-semibold text-purple-600 bg-purple-100 px-2 py-1 rounded-full">
+                  이벤트
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-gray-500 mt-1 truncate">{command}</p>
           </div>
-          <p className="text-sm text-gray-500 mt-1 truncate">{command}</p>
-          <div className="flex items-center mt-2">
+          <div className="flex items-center">
             <div className="flex items-center text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded-full">
               <ClockIcon className="w-4 h-4 mr-1 text-gray-500" />
-              <span>{cron}</span>
+              <span>{displayTime}</span>
             </div>
           </div>
-        </div>
         </div>
         <button
           type="button"
@@ -161,7 +162,7 @@ export default function ScheduleCard({
             e.stopPropagation();
             handleDelete();
           }}
-          className="p-2 text-gray-400 hover:text-red-500 ml-auto flex-shrink-0"
+          className="p-2 text-gray-400 hover:text-red-500 ml-auto flex-shrink-0 self-center"
         >
           <TrashIcon className="w-5 h-5" />
         </button>

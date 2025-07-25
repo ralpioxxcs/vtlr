@@ -5,83 +5,89 @@ import {
   getScheduleList,
   updateSchedule,
 } from "@/pages/api/schedule";
-import { Spinner, Textarea } from "@heroui/react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { Spinner } from "@heroui/react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+type HourData = {
+  hour: number;
+  isActive: boolean;
+  id: string | null;
+};
+
+const hourGroups = [
+  { title: "새벽", hours: [0, 1, 2, 3, 4, 5] },
+  { title: "오전", hours: [6, 7, 8, 9, 10, 11] },
+  { title: "오후", hours: [12, 13, 14, 15, 16, 17] },
+  { title: "저녁", hours: [18, 19, 20, 21, 22, 23] },
+];
 
 export default function OnTime() {
+  const queryClient = useQueryClient();
   const queryKey = "on_time";
 
-  const { data, isLoading, isError } = useQuery({
+  const {
+    data: hours,
+    isLoading,
+    isError,
+  } = useQuery<HourData[]>({
     queryKey: [queryKey],
     queryFn: async () => {
       const response = await getScheduleList("recurring", "on_time");
-
-      const hours = Array(24).fill(false);
+      const initialHours: HourData[] = Array.from({ length: 24 }, (_, i) => ({
+        hour: i,
+        isActive: false,
+        id: null,
+      }));
 
       response.forEach((item) => {
         const hour = parseInt(item.interval.split(" ")[1], 10);
-        const isActive = item.active;
-        hours[hour] = isActive;
+        if (hour >= 0 && hour < 24) {
+          initialHours[hour] = {
+            hour: hour,
+            isActive: item.active,
+            id: item.id,
+          };
+        }
       });
-
-      return hours;
+      return initialHours;
     },
-    initialData: () => Array(24).fill(false),
   });
 
-  const { mutate: handleToggle } = useMutation({
-    mutationFn: async (hour: number) => {
-      data[hour] = !data[hour];
-
-      const onTimeScheduleList = await getScheduleList("recurring", "on_time");
-      const hourList: { active: boolean; id: string }[] = Array.from(
-        { length: 24 },
-        () => ({
-          active: false,
-          id: "",
-        }),
-      );
-
-      for (const schedule of onTimeScheduleList) {
-        const hour = schedule.interval.split(" ")[1];
-        const id = schedule.id;
-        const active = schedule.active;
-        hourList[+hour] = {
-          active,
-          id,
-        };
-      }
-
-      let meridiem;
+  const { mutate: toggleHour } = useMutation({
+    mutationFn: async ({ hour, isActive, id }: HourData) => {
+      let meridiem = "오전";
       let speakHour = hour;
 
-      if (hour >= 0 && hour < 6) {
-        meridiem = "새벽";
-      } else if (hour >= 6 && hour < 12) {
-        meridiem = "오전";
-      } else if (hour >= 12 && hour < 18) {
-        if (hour !== 12) {
-          speakHour -= 12;
-        }
-        meridiem = "오후";
-      } else {
-        speakHour -= 12;
-        meridiem = "밤";
+      if (hour >= 0 && hour < 6) meridiem = "새벽";
+      else if (hour >= 12) {
+        speakHour = hour === 12 ? 12 : hour - 12;
+        meridiem = hour < 18 ? "오후" : "밤";
       }
 
-      if (!hourList[hour].active) {
-        await createSchedule(
-          "recurring",
-          "on_time",
-          `on_time_schedule_${hour}`,
-          `현재 시각은 ${meridiem} ${speakHour}시 입니다.`,
-          `0 ${hour} * * *`,
-        );
+      const title = `정각 알림 - ${hour}시`;
+      const command = `현재 시각은 ${meridiem} ${speakHour}시 입니다.`;
+      const interval = `0 ${hour} * * *`;
+
+      if (id) {
+        await updateSchedule(id, { active: !isActive });
       } else {
-        await updateSchedule(hourList[hour].id, {
-          active: !hourList[hour].active,
-        });
+        await createSchedule("recurring", "on_time", title, command, interval);
       }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [queryKey] });
+    },
+  });
+
+  const { mutate: toggleAllHours } = useMutation({
+    mutationFn: async (activate: boolean) => {
+      const promises = hours?.map((hourData) => {
+        if (hourData.isActive !== activate) {
+          return toggleHour(hourData);
+        }
+        return Promise.resolve();
+      });
+      await Promise.all(promises || []);
     },
   });
 
@@ -93,92 +99,69 @@ export default function OnTime() {
     );
   }
 
-  if (isError) {
-    return <h1>Error</h1>;
+  if (isError || !hours) {
+    return <h1>오류가 발생했습니다.</h1>;
   }
 
   return (
-    <div className="grow flex justify-center items-center bg-gray-100">
-      <div className="bg-white shadow-lg rounded-lg p-4 w-full max-w-lg">
-        <h1 className="text-xl font-semibold text-gray-800 text-center">
-          24시간 정각 알림
-        </h1>
-        <p className="mt-2 text-gray-600 text-center">
-          각 시간별 알림을 켜고 끌 수 있습니다.
-        </p>
-
-        <div className="mt-8">
-          <h2 className="text-xl text-center font-semibold text-gray-700 mb-4">
-            오전
-          </h2>
-          <div className="grid grid-cols-3 gap-4">
-            {data.slice(0, 12).map((isEnabled, hour) => (
-              <div key={hour} className="text-center">
-                <span className="block text-sm font-medium text-gray-700">
-                  {hour}시
-                </span>
-                <label className="relative inline-flex items-center cursor-pointer mt-2">
-                  <input
-                    type="checkbox"
-                    checked={isEnabled}
-                    onChange={() => handleToggle(hour)}
-                    className="sr-only"
-                  />
-                  <div
-                    className={`w-12 h-6 bg-gray-300 rounded-full shadow-inner transition-colors duration-300 ${
-                      isEnabled ? "bg-teal-600" : "bg-gray-300"
-                    }`}
-                  ></div>
-                  <div
-                    className={`absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ${
-                      isEnabled ? "translate-x-6" : "translate-x-0"
-                    }`}
-                  ></div>
-                </label>
-              </div>
-            ))}
+    <div className="p-4 md:p-6">
+      <div className="bg-white shadow-lg rounded-lg p-4 sm:p-6 w-full">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+          <div>
+            <h1 className="text-xl font-semibold text-gray-800">
+              24시간 정각 알림
+            </h1>
+            <p className="mt-1 text-gray-600">
+              각 시간별 알림을 켜고 끌 수 있습니다.
+            </p>
           </div>
-
-          <h2 className="text-xl text-center font-semibold text-gray-700 mt-8 mb-4">
-            오후
-          </h2>
-          <div className="grid grid-cols-3 gap-4">
-            {data.slice(12).map((isEnabled, hour) => (
-              <div key={hour + 12} className="text-center">
-                <span className="block text-sm font-medium text-gray-700">
-                  {hour + 12}시
-                </span>
-                <label className="relative inline-flex items-center cursor-pointer mt-2">
-                  <input
-                    type="checkbox"
-                    checked={isEnabled}
-                    onChange={() => handleToggle(hour + 12)}
-                    className="sr-only"
-                  />
-                  <div
-                    className={`w-12 h-6 bg-gray-300 rounded-full shadow-inner transition-colors duration-300 ${
-                      isEnabled ? "bg-teal-600" : "bg-gray-300"
-                    }`}
-                  ></div>
-                  <div
-                    className={`absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ${
-                      isEnabled ? "translate-x-6" : "translate-x-0"
-                    }`}
-                  ></div>
-                </label>
-              </div>
-            ))}
+          <div className="flex space-x-2 mt-4 sm:mt-0">
+            <button
+              onClick={() => toggleAllHours(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              전체 선택
+            </button>
+            <button
+              onClick={() => toggleAllHours(false)}
+              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+            >
+              전체 해제
+            </button>
           </div>
         </div>
 
-        <div className="mt-8">
-          <Textarea
-            variant="flat"
-            className="col-span-12 md:col-span-6 mb-6 md:mb-0"
-            label="정각시 말할 문장"
-            placeholder="현재 시각 OO시 입니다"
-          />
-        </div>
+        {hourGroups.map((group) => (
+          <div key={group.title} className="mb-6">
+            <h2 className="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">
+              {group.title}
+            </h2>
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
+              {group.hours.map((hour) => {
+                const hourData = hours[hour];
+                return (
+                  <div
+                    key={hour}
+                    className="flex flex-col items-center justify-center p-2 border rounded-lg"
+                  >
+                    <span className="font-semibold text-gray-800">
+                      {hour}시
+                    </span>
+                    <label className="relative inline-flex items-center cursor-pointer mt-2">
+                      <input
+                        type="checkbox"
+                        checked={hourData.isActive}
+                        onChange={() => toggleHour(hourData)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
+                    </label>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
