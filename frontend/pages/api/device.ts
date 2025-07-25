@@ -73,6 +73,31 @@ export async function setDeviceConfiguration(
   }
 }
 
+export async function updateDevice(
+  deviceId: string,
+  name: string,
+  ip: string,
+): Promise<any> {
+  const url = `${baseURL}/v1.0/chromecast/device/${deviceId}`;
+  try {
+    const data = {
+      device_name: name,
+      ip_address: ip,
+    };
+    const response = await fetch(url, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
+    return await response.json();
+  } catch (err) {
+    console.error(`error is occured (${err})`);
+    throw err;
+  }
+}
+
 export async function playAudio(
   deviceId: string,
   playId: string

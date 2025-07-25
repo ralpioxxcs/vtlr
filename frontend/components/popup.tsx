@@ -1,15 +1,14 @@
 "use client";
 
 import { createSchedule, updateSchedule } from "@/pages/api/schedule";
-import { getLocalTimeZone, now } from "@internationalized/date";
-import { DatePicker } from "@heroui/date-picker";
 import {
   Button,
   Checkbox,
   CheckboxGroup,
   Form,
   Input,
-  TimeInput,
+  Textarea,
+  Divider,
 } from "@heroui/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ScheduleList } from "Type";
@@ -29,45 +28,48 @@ interface ModalProps {
   };
 }
 
-const datetimeToCron = (datetime: string) => {
-  const [datePart, timePart] = datetime.split("T");
-  const [_, month, day] = datePart.split("-").map(Number);
-  const [hour, minute] = timePart.split(":").map(Number);
-
-  return `${minute} ${hour} ${day} ${month} *`;
+// Cron 표현식에서 시간(HH:MM) 추출
+const cronToTime = (cron: string) => {
+  if (!cron) return "09:00";
+  const parts = cron.split(" ");
+  const minute = parts[0];
+  const hour = parts[1];
+  return `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}`;
 };
 
-const generateCronExpression = (daysOfWeek: string[], datetime: string) => {
-  const selectedDays = daysOfWeek
-    .map((key) => {
-      switch (key) {
-        case "sun":
-          return "0";
-        case "mon":
-          return "1";
-        case "tue":
-          return "2";
-        case "wed":
-          return "3";
-        case "thu":
-          return "4";
-        case "fri":
-          return "5";
-        case "sat":
-          return "6";
-        default:
-          return "*";
-      }
-    })
-    .join(",");
-
-  const hour = datetime.split(":")[0];
-  const minute = datetime.split(":")[1];
-
-  return `${minute} ${hour} * * ${selectedDays}`;
+// Cron 표현식에서 요일 배열 추출
+const cronToDays = (cron: string) => {
+  if (!cron) return [];
+  const dayOfWeek = cron.split(" ")[4];
+  if (dayOfWeek === "*") return [];
+  return dayOfWeek.split(",").map((d) => {
+    switch (d) {
+      case "0": return "sun";
+      case "1": return "mon";
+      case "2": return "tue";
+      case "3": return "wed";
+      case "4": return "thu";
+      case "5": return "fri";
+      case "6": return "sat";
+      default: return "";
+    }
+  });
 };
 
-//--------------------------------------------------------------------------------
+// Cron 표현식에서 datetime-local 형식으로 변환
+const cronToDateTimeLocal = (cron: string) => {
+    if (!cron) {
+        const d = new Date();
+        d.setMinutes(d.getMinutes() + 1);
+        return d.toISOString().slice(0, 16);
+    }
+    const [minute, hour, day, month] = cron.split(' ');
+    const now = new Date();
+    const year = now.getFullYear();
+    // JavaScript의 month는 0-11 범위이므로 1을 빼줍니다.
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+};
+
 
 export default function Modal({
   onClose,
@@ -77,135 +79,67 @@ export default function Modal({
   schedule,
 }: ModalProps) {
   const [isLoading, setIsLoading] = useState(false);
-
-  const cronToTime = (cron: string) => {
-    const [minute, hour] = cron.split(" ");
-    return `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}`;
-  };
-
-  const cronToDays = (cron: string) => {
-    const dayOfWeek = cron.split(" ")[4];
-    if (dayOfWeek === "*") return [];
-    return dayOfWeek.split(",").map((d) => {
-      switch (d) {
-        case "0":
-          return "sun";
-        case "1":
-          return "mon";
-        case "2":
-          return "tue";
-        case "3":
-          return "wed";
-        case "4":
-          return "thu";
-        case "5":
-          return "fri";
-        case "6":
-          return "sat";
-        default:
-          return "";
-      }
-    });
-  };
-
   const queryClient = useQueryClient();
-  const { mutate: handleCreate } = useMutation({
-    mutationFn: ({
-      title,
-      command,
-      cronExp,
-    }: {
+
+  const mutation = useMutation({
+    mutationFn: (variables: {
       title: string;
       command: string;
       cronExp: string;
-    }) =>
-      createSchedule(
-        type,
-        type === "recurring" ? "routine" : "event",
-        title,
-        command,
-        cronExp,
-        type === "recurring" ? false : true,
-      ),
-    onMutate: () => {
-      setIsLoading(true);
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryId] }),
-    onError: (error) => console.error("Failed to delete schedule:", error),
-    onSettled: () => {
-      setIsLoading(false);
-      onClose();
-    },
-  });
+    }) => {
+      const { title, command, cronExp } = variables;
+      const category = type === "recurring" ? "routine" : "event";
+      const removeOnComplete = type !== "recurring";
 
-  const { mutate: handleUpdate } = useMutation({
-    mutationFn: ({
-      title,
-      command,
-      cronExp,
-    }: {
-      title: string;
-      command: string;
-      cronExp: string;
-    }) =>
-      updateSchedule(schedule.id, {
-        title,
-        command,
-        interval: cronExp,
-      }),
-    onMutate: () => {
-      setIsLoading(true);
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryId] }),
-    onError: (error) => console.error("Failed to update schedule:", error),
-    onSettled: () => {
-      setIsLoading(false);
-      onClose();
-    },
-  });
-
-  const handleForward = async (
-    title: string,
-    command: string,
-    datetime: string,
-    daysOfWeek?: string[],
-  ) => {
-    try {
-      let cronExp = "";
-      if (type === "one_time") {
-        cronExp = datetimeToCron(datetime);
-      } else if (daysOfWeek && type === "recurring") {
-        cronExp = generateCronExpression(daysOfWeek, datetime);
-      }
-      if (schedule) {
-        handleUpdate({ title, command, cronExp });
+      if (schedule?.id) {
+        return updateSchedule(schedule.id, { title, command, interval: cronExp });
       } else {
-        handleCreate({ title, command, cronExp });
+        return createSchedule(type, category, title, command, cronExp, removeOnComplete);
       }
-    } catch (error) {
-      console.error("Failed to create schedule:", error);
-    }
-  };
+    },
+    onMutate: () => setIsLoading(true),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryId] }),
+    onError: (error) => console.error("Schedule operation failed:", error),
+    onSettled: () => {
+      setIsLoading(false);
+      onClose();
+    },
+  });
 
-  const onSubmit = async (e: any) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
     const formData = new FormData(e.currentTarget);
-
     const data = Object.fromEntries(formData);
-    const selectedDays = formData.getAll("days") as string[];
 
-    const newErrors = {};
-    if (Object.keys(newErrors).length > 0) {
-      return;
+    let title = data.title.toString().trim();
+    const command = data.command.toString().trim();
+    
+    if (!title && command) {
+      title = command.split('\n')[0]; // Use the first line of the command as title
     }
 
-    handleForward(
-      data.title.toString(),
-      data.command.toString(),
-      data.datetime.toString(),
-      selectedDays,
-    );
+    if (!command) {
+        alert("명령어를 입력해주세요.");
+        return;
+    }
+
+    let cronExp = "";
+    if (type === "one_time") {
+      const dt = new Date(data.datetime.toString());
+      cronExp = `${dt.getMinutes()} ${dt.getHours()} ${dt.getDate()} ${dt.getMonth() + 1} *`;
+    } else {
+      const time = data.time.toString();
+      const [hour, minute] = time.split(":");
+      const days = formData.getAll("days") as string[];
+      if (days.length === 0) {
+          alert("요일을 하나 이상 선택해주세요.");
+          return;
+      }
+      const dayOfWeek = days.join(",");
+      cronExp = `${minute} ${hour} * * ${dayOfWeek}`;
+    }
+
+    mutation.mutate({ title, command, cronExp });
   };
 
   return (
@@ -213,125 +147,83 @@ export default function Modal({
       className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"
       onClick={onClose}
     >
-      <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=false"
-      />
       <div
-        className="bg-white p-6 rounded-lg shadow-xl min-w-[350px] flex flex-col"
+        className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <h4 className="text-2xl font-bold mb-4">{children}</h4>
 
         <Form
-          className="justify-center items-center"
+          className="flex flex-col gap-4"
           validationBehavior="native"
-          onSubmit={onSubmit}
+          onSubmit={handleSubmit}
         >
-          <div className="flex flex-col gap-6 w-full">
+          <Input
+            label="제목 (비워두면 명령어로 자동 생성)"
+            name="title"
+            placeholder="예: 아침 뉴스 브리핑"
+            defaultValue={schedule?.title}
+          />
+          <Textarea
+            isRequired
+            label="명령어"
+            name="command"
+            placeholder="버틀러가 말할 문장을 입력하세요. 🗣️"
+            defaultValue={schedule?.command}
+            minRows={3}
+          />
+
+          <Divider className="my-2" />
+
+          {type === "one_time" && (
             <Input
               isRequired
-              label="제목"
-              labelPlacement="outside"
-              name="title"
-              placeholder="이벤트 제목을 입력하세요"
-              type="text"
-              defaultValue={schedule?.title}
+              type="datetime-local"
+              label="실행 날짜 및 시간"
+              name="datetime"
+              defaultValue={schedule ? cronToDateTimeLocal(schedule.interval) : new Date(Date.now() + 60000).toISOString().slice(0, 16)}
             />
+          )}
 
-            <Input
-              isRequired
-              label="명령어"
-              labelPlacement="outside"
-              name="command"
-              placeholder="버틀러가 말할 문장을 입력하세요 🗣️"
-              type="text"
-              defaultValue={schedule?.command}
-              validate={(value) => {
-                if (value.length == 1) {
-                  return "명령어는 1 글자 이상 작성하세요";
-                }
-              }}
-            />
-
-            {type === "one_time" && (
-              <div>
-                <DatePicker
-                  isRequired
-                  label="시작 날짜 및 시간"
-                  labelPlacement="outside"
-                  name="datetime"
-                  hourCycle={24}
-                  defaultValue={now(getLocalTimeZone())}
-                  hideTimeZone
-                  showMonthAndYearPickers
-                  variant="flat"
-                  validate={(value) => {
-                    if (value < now(getLocalTimeZone())) {
-                      return "과거시간은 사용할 수 없습니다";
-                    }
-                  }}
-                />
-              </div>
-            )}
-
-            {type === "recurring" && (
-              <div className="flex flex-col gap-4">
-                <TimeInput
-                  isRequired
-                  label="시작 시간"
-                  labelPlacement="outside"
-                  name="datetime"
-                  hourCycle={24}
-                  defaultValue={now(getLocalTimeZone())}
-                  variant="flat"
-                />
-                <CheckboxGroup
-                  isRequired
-                  label="요일"
-                  classNames={{
-                    label: "text-small text-foreground",
-                  }}
-                  name="days"
-                  orientation="horizontal"
-                  radius="full"
-                  defaultValue={schedule ? cronToDays(schedule.interval) : []}
-                  validate={(value) => {
-                    if (value.length < 1) {
-                      return "1개 이상의 요일을 선택하세요";
-                    }
-                  }}
-                >
-                  <Checkbox value="mon">월</Checkbox>
-                  <Checkbox value="tue">화</Checkbox>
-                  <Checkbox value="wed">수</Checkbox>
-                  <Checkbox value="thu">목</Checkbox>
-                  <Checkbox value="fri">금</Checkbox>
-                  <Checkbox value="sat">토</Checkbox>
-                  <Checkbox value="sun">일</Checkbox>
-                </CheckboxGroup>
-              </div>
-            )}
-
-            <div className="flex gap-4 mt-2">
-              <Button
-                isLoading={isLoading}
-                className="w-full"
-                color="primary"
-                type="submit"
+          {type === "recurring" && (
+            <div className="flex flex-col gap-4">
+              <Input
+                isRequired
+                type="time"
+                label="실행 시간"
+                name="time"
+                defaultValue={schedule ? cronToTime(schedule.interval) : "09:00"}
+              />
+              <CheckboxGroup
+                isRequired
+                label="요일 선택"
+                name="days"
+                orientation="horizontal"
+                defaultValue={schedule ? cronToDays(schedule.interval) : ["mon", "tue", "wed", "thu", "fri"]}
               >
-                {isLoading
-                  ? schedule
-                    ? "수정중.."
-                    : "생성중.."
-                  : schedule
-                    ? "수정하기"
-                    : "만들기"}
-              </Button>
-              <Button type="reset" variant="bordered">
-                초기화
-              </Button>
+                <Checkbox value="sun">일</Checkbox>
+                <Checkbox value="mon">월</Checkbox>
+                <Checkbox value="tue">화</Checkbox>
+                <Checkbox value="wed">수</Checkbox>
+                <Checkbox value="thu">목</Checkbox>
+                <Checkbox value="fri">금</Checkbox>
+                <Checkbox value="sat">토</Checkbox>
+              </CheckboxGroup>
             </div>
+          )}
+
+          <div className="flex gap-4 mt-4">
+            <Button
+              isLoading={isLoading}
+              className="w-full"
+              color="primary"
+              type="submit"
+            >
+              {isLoading ? (schedule ? "수정 중..." : "생성 중...") : (schedule ? "수정하기" : "만들기")}
+            </Button>
+            <Button type="button" variant="bordered" onClick={onClose}>
+              취소
+            </Button>
           </div>
         </Form>
       </div>
