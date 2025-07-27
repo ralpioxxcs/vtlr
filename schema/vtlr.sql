@@ -4,8 +4,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE SCHEMA IF NOT EXISTS vtlr;
 
 DROP TABLE IF EXISTS vtlr.schedules CASCADE;
-DROP TABLE IF EXISTS vtlr.tasks;
-DROP TABLE IF EXISTS vtlr.users;
+DROP TABLE IF EXISTS vtlr.users CASCADE;
 DROP TABLE IF EXISTS vtlr.user_devices;
 
 -- Schedules Table
@@ -13,32 +12,11 @@ CREATE TABLE vtlr.schedules (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     title VARCHAR(128) NOT NULL,
     description TEXT,
-    type VARCHAR(32) NOT NULL,
-    category VARCHAR(64),
-    interval VARCHAR(64) NOT NULL,
+    schedule_config JSONB NOT NULL,
+    action_config JSONB NOT NULL,
     active BOOLEAN NOT NULL,
-    remove_on_complete BOOLEAN DEFAULT FALSE,
-    start_time TIMESTAMPTZ,
-    end_time TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
-
--- Tasks Table
-CREATE TABLE vtlr.tasks (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    title VARCHAR(128) NOT NULL,
-    description TEXT NOT NULL,
-    status VARCHAR(16) NOT NULL,
-    text TEXT NOT NULL,
-    language VARCHAR(16) NOT NULL,
-    result JSON,
-    attemps INTEGER NOT NULL,
-    schedule_id UUID NOT NULL,
-    user_id UUID NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    CONSTRAINT fk_schedule FOREIGN KEY (schedule_id) REFERENCES vtlr.schedules (id) ON DELETE CASCADE
 );
 
 -- Users Table
@@ -70,8 +48,6 @@ CREATE TABLE vtlr.user_devices(
 
 -- Indexes and Constraints
 CREATE INDEX idx_schedule_title ON vtlr.schedules (title);
-CREATE INDEX idx_task_status ON vtlr.tasks (status);
-CREATE INDEX idx_task_schedule_id ON vtlr.tasks (schedule_id);
 CREATE INDEX idx_user_devices_user_id ON vtlr.user_devices(user_id);
 
 -- Create root user
