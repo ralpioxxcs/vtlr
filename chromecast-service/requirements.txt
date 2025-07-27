@@ -1,6 +1,7 @@
 flask
 flask-cors
 pychromecast
+pytubefix
 python-dotenv
 rq
 redis
