@@ -24,10 +24,7 @@ export const Sidebar = ({
   const pathname = usePathname();
 
   const navItems = [
-    { label: "홈", path: "/", icon: <HomeIcon /> },
-    { label: "루틴", path: "/routine", icon: <ScheduleIcon /> },
-    { label: "이벤트", path: "/event", icon: <EventIcon /> },
-    { label: "정각 알람", path: "/on-time", icon: <AccessAlarmIcon /> },
+    { label: "스케줄", path: "/", icon: <HomeIcon /> },
     { label: "할 일", path: "/task", icon: <PlaylistAddCheckIcon /> },
     { label: "설정", path: "/setting", icon: <SettingsIcon /> },
   ];

@@ -30,59 +30,18 @@ export async function getDeviceConnection(deviceId: string): Promise<Device[]> {
   }
 }
 
-export async function getDeviceConfiguration(
-  deviceId: string,
-): Promise<Device[]> {
-  const url = `${baseURL}/v1.0/chromecast/device/${deviceId}/configuration`;
-
-  try {
-    const response = await fetch(url);
-    console.log(response);
-    const json = await response.json();
-    return json;
-  } catch (err) {
-    console.error(`error is occured (${err})`);
-    throw err;
-  }
-}
-
-export async function setDeviceConfiguration(
-  deviceId: string,
-  volume: number,
-): Promise<Device[]> {
-  const url = `${baseURL}/v1.0/chromecast/device/${deviceId}/configuration`;
-
-  try {
-    const data = {
-      deviceId: deviceId,
-      volume: volume,
-    };
-    const response = await fetch(url, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
-    console.log(response);
-    const json = await response.json();
-    return json;
-  } catch (err) {
-    console.error(`error is occured (${err})`);
-    throw err;
-  }
-}
-
 export async function updateDevice(
   deviceId: string,
   name: string,
   ip: string,
+  volume: number,
 ): Promise<any> {
   const url = `${baseURL}/v1.0/chromecast/device/${deviceId}`;
   try {
     const data = {
       device_name: name,
       ip_address: ip,
+      volume: volume,
     };
     const response = await fetch(url, {
       method: "PATCH",

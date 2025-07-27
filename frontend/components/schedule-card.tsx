@@ -2,188 +2,138 @@
 
 import { deleteSchedule, updateSchedule } from "@/pages/api/schedule";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { ScheduleList } from "Type";
-import parser from "cron-parser";
-import Modal from "./popup";
 import { useState } from "react";
 import { TrashIcon, ClockIcon } from "@heroicons/react/24/outline";
+import { Mic, YouTube } from "@mui/icons-material";
+import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from "@heroui/react";
 
 interface ScheduleProps {
   queryId: string;
-  id: ScheduleList["id"];
-  title: ScheduleList["title"];
-  type: ScheduleList["type"];
-  interval: ScheduleList["interval"];
-  command: ScheduleList["tasks"];
-  active: ScheduleList["active"];
-  removeOnComplete: ScheduleList["removeOnComplete"];
+  schedule: any; 
 }
 
-export const toSimpleDate = (date: Date) => {
-  if (!(date instanceof Date)) {
-    return "";
+const ActionBadge = ({ config }: { config: any }) => {
+  if (!config) return null;
+
+  const baseBadgeStyle = "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold";
+
+  switch (config.type) {
+    case "TTS":
+      return (
+        <span className={`${baseBadgeStyle} bg-blue-100 text-blue-700`}>
+          <Mic sx={{ fontSize: 16 }} />
+          TTS
+        </span>
+      );
+    case "YOUTUBE":
+      return (
+        <span className={`${baseBadgeStyle} bg-red-100 text-red-700`}>
+          <YouTube sx={{ fontSize: 16 }} />
+          YouTube
+        </span>
+      );
+    default:
+      return <span className={`${baseBadgeStyle} bg-gray-100 text-gray-700`}>알 수 없음</span>;
   }
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  return `${year}/${month}/${day} ${hours}:${minutes}`;
 };
 
-export const parseCronExpression = (expression: string) => {
+const formatScheduleTime = (config: any) => {
+  if (!config) return "시간 정보 없음";
   try {
-    const interval = parser.parseExpression(expression);
-    return toSimpleDate(interval.next().toDate());
-  } catch (err) {
-    console.error("Error parsing cron expression:", err);
-    return [];
-  }
-};
-
-export const describeCronExpression = (expression: string) => {
-  try {
-    const [minute, hour, dayOfMonth, month, dayOfWeek] = expression.split(" ");
-
-    const time = `${hour === "*" ? "매시간" : `${hour.padStart(2, "0")}시`} ${
-      minute === "*" ? "매분" : `${minute.padStart(2, "0")}분`
-    }`;
-
-    let schedule = "";
-
-    if (dayOfWeek !== "*") {
-      const dayNumbers = dayOfWeek
-        .split(",")
-        .map((d) => parseInt(d))
-        .sort((a, b) => a - b);
-      const daySet = new Set(dayNumbers);
-
-      if (daySet.size === 7) {
-        schedule = "매일";
-      } else if (
-        daySet.size === 5 &&
-        [1, 2, 3, 4, 5].every((day) => daySet.has(day))
-      ) {
-        schedule = "매주 주중";
-      } else if (daySet.size === 2 && [0, 6].every((day) => daySet.has(day))) {
-        schedule = "매주 주말";
-      } else {
-        const days = ["일", "월", "화", "수", "목", "금", "토"];
-        schedule = `매주 ${dayNumbers.map((d) => days[d]).join(", ")}`;
-      }
-    } else if (dayOfMonth !== "*") {
-      schedule = `매월 ${dayOfMonth}일`;
-    } else if (month !== "*") {
-      schedule = `${month}월`;
-    } else {
-      schedule = "매일";
+    switch (config.type) {
+      case "ONE_TIME":
+        const date = new Date(config.datetime);
+        return date.toLocaleString('ko-KR', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      case "RECURRING":
+        return `매주 ${config.days.join(', ')} ${config.time.substring(0, 5)}`;
+      case "HOURLY":
+        return `매시간 ${config.time.split(':')[1]}분`;
+      default:
+        return "알 수 없는 스케줄";
     }
-
-    return `${schedule} ${time}`;
-  } catch (err) {
-    console.error("Error parsing cron expression:", err);
-    return "Invalid cron expression";
+  } catch (error) {
+    return "시간 형식 오류";
   }
 };
 
-export default function ScheduleCard({
-  queryId,
-  id,
-  title,
-  type,
-  interval,
-  command,
-  active,
-  removeOnComplete,
-}: ScheduleProps) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+import ScheduleFormModal from "./ScheduleFormModal";
 
+// ... (other code)
+
+export default function ScheduleCard({ queryId, schedule }: ScheduleProps) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
 
-  const displayTime = type === "one_time" ? parseCronExpression(interval) : describeCronExpression(interval);
+  const displayTime = formatScheduleTime(schedule.schedule_config);
 
   const queryClient = useQueryClient();
-  const { mutate: handleDelete } = useMutation({
-    mutationFn: () => deleteSchedule(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryId] }),
-    onError: (error) => console.error("Failed to delete schedule:", error),
-  });
-
   const { mutate: handleActiveToggle } = useMutation({
-    mutationFn: () => updateSchedule(id, { active: !active }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: [queryId] }),
-    onError: (error) => console.error("Failed to update schedule:", error),
+    mutationFn: () => updateSchedule(schedule.id, { active: !schedule.active }),
+    onMutate: async () => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: [queryId] });
+
+      // Snapshot the previous value
+      const previousData = queryClient.getQueryData([queryId]);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData([queryId], (oldData: any[] | undefined) => {
+        if (!oldData) return [];
+        return oldData.map(item =>
+          item.id === schedule.id ? { ...item, active: !item.active } : item
+        );
+      });
+
+      // Return a context object with the snapshotted value
+      return { previousData };
+    },
+    // If the mutation fails, use the context we returned above
+    onError: (err, variables, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData([queryId], context.previousData);
+      }
+    },
+    // Always refetch after error or success, to ensure client state is consistent
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: [queryId] });
+    },
   });
 
   return (
     <>
       <div
         onClick={openModal}
-        className="flex items-center p-4 my-2 bg-white shadow-md rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50 h-32"
+        className={`flex items-center p-4 my-2 bg-white shadow-sm rounded-lg border transition-all duration-200 cursor-pointer hover:shadow-md hover:border-gray-300 ${!schedule.active && "opacity-50"}`}
       >
         <div
           onClick={(e) => {
             e.stopPropagation();
             handleActiveToggle();
           }}
-          className={`w-4 h-4 rounded-full mr-4 flex-shrink-0 ${
-            active ? "bg-green-500" : "bg-gray-300"
+          className={`w-5 h-5 rounded-full mr-4 flex-shrink-0 transition-colors ${
+            schedule.active ? "bg-green-500 hover:bg-green-600" : "bg-gray-300 hover:bg-gray-400"
           }`}
         ></div>
-        <div className="flex flex-col justify-between flex-grow min-w-0 h-full py-1">
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-semibold text-gray-800 truncate">
-                {title}
-              </h2>
-              {type === "recurring" ? (
-                <span className="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
-                  루틴
-                </span>
-              ) : (
-                <span className="text-xs font-semibold text-purple-600 bg-purple-100 px-2 py-1 rounded-full">
-                  이벤트
-                </span>
-              )}
-            </div>
-            <p className="text-sm text-gray-500 mt-1 truncate">{command}</p>
-          </div>
-          <div className="flex items-center">
-            <div className="flex items-center text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded-full">
-              <ClockIcon className="w-4 h-4 mr-1 text-gray-500" />
+        <div className="flex flex-col flex-grow min-w-0">
+          <h2 className="text-base font-semibold text-gray-800 truncate">
+            {schedule.title}
+          </h2>
+          <div className="flex items-center gap-4 mt-2">
+            <ActionBadge config={schedule.action_config} />
+            <div className="flex items-center text-xs text-gray-500">
+              <ClockIcon className="w-4 h-4 mr-1" />
               <span>{displayTime}</span>
             </div>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleDelete();
-          }}
-          className="p-2 text-gray-400 hover:text-red-500 ml-auto flex-shrink-0 self-center"
-        >
-          <TrashIcon className="w-5 h-5" />
-        </button>
       </div>
+
       {isModalOpen && (
-        <Modal
-          onClose={closeModal}
-          queryId={queryId}
-          type={type}
-          schedule={{
-            id,
-            title,
-            type,
-            interval,
-            command,
-            active,
-            removeOnComplete,
-          }}
-        >
-          {type === "recurring" ? "루틴 수정하기" : "이벤트 수정하기"}
-        </Modal>
+        <ScheduleFormModal 
+          onClose={closeModal} 
+          schedule={schedule} 
+        />
       )}
     </>
   );
