@@ -8,7 +8,6 @@ import {
   Param,
   Patch,
   Post,
-  Query,
   UseInterceptors,
 } from '@nestjs/common';
 import { ScheduleService } from './schedule.service';
@@ -17,7 +16,6 @@ import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { TxInterceptor } from 'src/common/interceptors/tx.interceptor';
 import { QueryRunner as QR } from 'typeorm';
 import { QueryRunner } from 'src/common/decorators/query-runner.decorator';
-import { CreateTaskDto } from 'src/task/dto/task.dto';
 
 @Controller('schedule')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -27,11 +25,8 @@ export class ScheduleController {
   constructor(private readonly scheduleService: ScheduleService) {}
 
   @Get()
-  async getAllSchedules(
-    @Query('type') type: string,
-    @Query('category') category: string,
-  ) {
-    return this.scheduleService.findAllSchedules(type, category);
+  async getAllSchedules() {
+    return this.scheduleService.findAllSchedules();
   }
 
   @Post()
@@ -60,15 +55,5 @@ export class ScheduleController {
     @Body() updateSchedule: UpdateScheduleDto & { command?: string },
   ) {
     return this.scheduleService.updateSchedule(scheduleId, updateSchedule);
-  }
-
-  @Post('/:scheduleId/task')
-  @UseInterceptors(TxInterceptor)
-  async addTask(
-    @Param('scheduleId') scheduleId: string,
-    @Body() createTask: CreateTaskDto,
-    @QueryRunner() qr: QR,
-  ) {
-    return this.scheduleService.appendTask(scheduleId, createTask, qr);
   }
 }

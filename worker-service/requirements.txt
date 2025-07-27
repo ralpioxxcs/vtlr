@@ -4,3 +4,6 @@ pychromecast
 boto3
 gtts
 python-dotenv
+requests
+croniter
+pytz

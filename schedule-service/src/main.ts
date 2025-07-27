@@ -4,7 +4,6 @@ import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ScheduleModel } from './schedule/entities/schedule.entity';
 import { SwaggerTheme, SwaggerThemeNameEnum } from 'swagger-themes';
-import { TaskModel } from './task/entites/task.entity';
 import { UserModel } from './user/entities/user.entity';
 import { HttpExceptionFilter } from './common/exceptions/http-exception.filter';
 
@@ -27,7 +26,7 @@ async function bootstrap() {
 
   const documentFactory = () =>
     SwaggerModule.createDocument(app, config, {
-      extraModels: [ScheduleModel, TaskModel, UserModel],
+      extraModels: [ScheduleModel, UserModel],
     });
   SwaggerModule.setup('api', app, documentFactory);
   const theme = new SwaggerTheme();

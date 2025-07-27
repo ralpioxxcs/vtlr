@@ -1,49 +1,39 @@
 import os
-import tempfile
-import sys
+import requests
+import logging
 
-from pathlib import Path
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-from util.file import uploadFileToS3
+TTS_API_URL = os.getenv("TTS_API_URL", "http://localhost:8000")
 
-submodule_path = Path(__file__).resolve().parent / "../external/MeloTTS"
-sys.path.append(str(submodule_path))
+def request_tts(text: str, language: str = "ko") -> str | None:
+    """
+    Requests TTS generation from the tts-service and returns a presigned URL.
+    """
+    try:
+        url = f"{TTS_API_URL}/v1.0/tts"
+        payload = {
+            "text": text,
+            "language": language,
+        }
+        response = requests.post(url, json=payload)
+        response.raise_for_status()
+        
+        data = response.json().get("data", {})
+        presigned_url = data.get("presignedUrl")
 
-from melo.api import TTS
+        if not presigned_url:
+            logger.error("TTS service response did not include a presignedUrl.")
+            return None
+        
+        logger.info(f"Received presigned URL from tts-service.")
+        return presigned_url
 
-import os
-from pathlib import Path
-
-def load_model():
-  homeDir = Path.home()
-  configPath = os.path.join(homeDir, "config.json")
-  ckptPath = os.path.join(homeDir, "G.pth")
-
-  model = TTS(language='KR', config_path=configPath, ckpt_path=ckptPath, device='cpu')
-  return model
-
-def generate_tts(text: str, playId: str) -> str:
-  print('generate tts', playId)
-  model = load_model()
-  print(f'generate tts .. (text: {text})')
-
-  filename = 'tts_output.wav'
-  filepath = tempfile.gettempdir()
-  savepath = os.path.join(filepath, filename)
-
-  for spk_name, spk_id in model.hps.data.spk2id.items():
-    print(f'spk_name: {spk_name} / spk_id: {spk_id}')
-    os.makedirs(os.path.dirname(savepath), exist_ok=True)
-    model.tts_to_file(text, spk_id, savepath)
-
-    # Upload WAV file to Storage bucket
-    bucketName = 'vtlr-dev-tts-speech'
-    objectName = os.path.join(playId, 'tts.wav')
-
-    success = uploadFileToS3(savepath, bucketName, objectName)
-    if success:
-        print("file upload successful.")
-    else:
-        print("file upload failed.")
-
-  return "wow"
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Failed to request TTS from {TTS_API_URL}: {e}")
+        return None
+    except Exception as e:
+        logger.error(f"An unexpected error occurred in request_tts: {e}")
+        return None
