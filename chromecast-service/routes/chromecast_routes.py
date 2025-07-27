@@ -37,7 +37,8 @@ def find_all_devices():
     result = [{
         "deviceId": dev.id,
         "name": dev.device_name,
-        "ip": dev.ip_address
+        "ip": dev.ip_address,
+        "volume": dev.volume
     } for dev in all_devices]
     return jsonify({"status": "success", "data": result}), 200
   except Exception as e:
@@ -96,6 +97,8 @@ def update_device(deviceId):
     device.device_name = data['device_name']
   if 'ip_address' in data:
     device.ip_address = data['ip_address']
+  if 'volume' in data:
+    device.volume = data['volume']
 
   try:
     session.commit()

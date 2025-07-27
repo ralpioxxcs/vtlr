@@ -41,6 +41,6 @@ class UserDevices(Base):
         'mac_address': self.mac_address,
         'manufacturer': self.manufacturer,
         'model': self.model,
-        'volumne': self.volume,
+        'volume': self.volume,
         'last_communication': self.last_communication
     }
