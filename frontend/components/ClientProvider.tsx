@@ -1,6 +1,5 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { NavigationProvider } from "@/contexts/navigationContext";
@@ -56,7 +55,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
 export function ClientProvider({ children }: { children: React.ReactNode }) {
   return (
-    <HeroUIProvider>
+    <HeroUIProvider locale="ko-KR" >
       <NavigationProvider>
         <TanstackQueryProvider>
           <Layout>{children}</Layout>

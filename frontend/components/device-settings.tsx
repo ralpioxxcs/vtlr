@@ -62,15 +62,15 @@ export const DeviceSettings = ({ device }: { device: Device }) => {
         </h3>
         <div className="flex flex-col space-y-3">
           <div className="flex items-center">
-            <label className="text-sm w-24 text-gray-600">기기 이름:</label>
+            <label className="w-24 text-gray-600">기기 이름:</label>
             <span>{device.name}</span>
           </div>
           <div className="flex items-center">
-            <label className="text-sm w-24 text-gray-600">기기 IP:</label>
+            <label className="w-24 text-gray-600">기기 IP:</label>
             <Snippet hideCopyButton hideSymbol size="sm">{device.ip}</Snippet>
           </div>
           <div className="flex items-center">
-            <label className="text-sm w-24 text-gray-600">연결 상태:</label>
+            <label className="w-24 text-gray-600">연결 상태:</label>
             {isConnLoading ? (
               <Spinner size="sm" />
             ) : isConnected ? (
@@ -105,7 +105,7 @@ export const DeviceSettings = ({ device }: { device: Device }) => {
           />
           <Divider className="my-2" />
           <div>
-            <label className="text-sm text-gray-600">명령어 볼륨</label>
+            <label className="text-gray-600">명령어 볼륨</label>
             <Slider
               aria-label="volume"
               className="mt-2"

@@ -5,10 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import HomeIcon from "@mui/icons-material/Home";
-import ScheduleIcon from "@mui/icons-material/Schedule";
-import EventIcon from "@mui/icons-material/Event";
-import AccessAlarmIcon from "@mui/icons-material/AccessAlarm";
-
 import PlaylistAddCheckIcon from "@mui/icons-material/PlaylistAddCheck";
 import SettingsIcon from "@mui/icons-material/Settings";
 

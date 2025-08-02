@@ -1,21 +1,23 @@
 "use client";
 
-import { deleteSchedule, updateSchedule } from "@/pages/api/schedule";
+import { updateSchedule } from "@/pages/api/schedule";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { TrashIcon, ClockIcon } from "@heroicons/react/24/outline";
+import { ClockIcon } from "@heroicons/react/24/outline";
 import { Mic, YouTube } from "@mui/icons-material";
-import { Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from "@heroui/react";
 
 interface ScheduleProps {
   queryId: string;
-  schedule: any; 
+  schedule: any;
 }
 
 const ActionBadge = ({ config }: { config: any }) => {
-  if (!config) return null;
+  if (!config) {
+    return null;
+  }
 
-  const baseBadgeStyle = "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold";
+  const baseBadgeStyle =
+    "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold";
 
   switch (config.type) {
     case "TTS":
@@ -33,7 +35,11 @@ const ActionBadge = ({ config }: { config: any }) => {
         </span>
       );
     default:
-      return <span className={`${baseBadgeStyle} bg-gray-100 text-gray-700`}>알 수 없음</span>;
+      return (
+        <span className={`${baseBadgeStyle} bg-gray-100 text-gray-700`}>
+          알 수 없음
+        </span>
+      );
   }
 };
 
@@ -43,11 +49,17 @@ const formatScheduleTime = (config: any) => {
     switch (config.type) {
       case "ONE_TIME":
         const date = new Date(config.datetime);
-        return date.toLocaleString('ko-KR', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        return date.toLocaleString("ko-KR", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
       case "RECURRING":
-        return `매주 ${config.days.join(', ')} ${config.time.substring(0, 5)}`;
+        return `매주 ${config.days.join(", ")} ${config.time.substring(0, 5)}`;
       case "HOURLY":
-        return `매시간 ${config.time.split(':')[1]}분`;
+        return `매시간 ${config.time.split(":")[1]}분`;
       default:
         return "알 수 없는 스케줄";
     }
@@ -58,12 +70,14 @@ const formatScheduleTime = (config: any) => {
 
 import ScheduleFormModal from "./ScheduleFormModal";
 
-// ... (other code)
-
 export default function ScheduleCard({ queryId, schedule }: ScheduleProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isClosed, setIsCloseClick] = useState(false);
   const openModal = () => setIsModalOpen(true);
-  const closeModal = () => setIsModalOpen(false);
+  const closeModal = () => {
+    setIsCloseClick(true);
+    setIsModalOpen(false);
+  };
 
   const displayTime = formatScheduleTime(schedule.schedule_config);
 
@@ -80,8 +94,8 @@ export default function ScheduleCard({ queryId, schedule }: ScheduleProps) {
       // Optimistically update to the new value
       queryClient.setQueryData([queryId], (oldData: any[] | undefined) => {
         if (!oldData) return [];
-        return oldData.map(item =>
-          item.id === schedule.id ? { ...item, active: !item.active } : item
+        return oldData.map((item) =>
+          item.id === schedule.id ? { ...item, active: !item.active } : item,
         );
       });
 
@@ -108,11 +122,12 @@ export default function ScheduleCard({ queryId, schedule }: ScheduleProps) {
       >
         <div
           onClick={(e) => {
-            e.stopPropagation();
             handleActiveToggle();
           }}
           className={`w-5 h-5 rounded-full mr-4 flex-shrink-0 transition-colors ${
-            schedule.active ? "bg-green-500 hover:bg-green-600" : "bg-gray-300 hover:bg-gray-400"
+            schedule.active
+              ? "bg-green-500 hover:bg-green-600"
+              : "bg-gray-300 hover:bg-gray-400"
           }`}
         ></div>
         <div className="flex flex-col flex-grow min-w-0">
@@ -129,11 +144,8 @@ export default function ScheduleCard({ queryId, schedule }: ScheduleProps) {
         </div>
       </div>
 
-      {isModalOpen && (
-        <ScheduleFormModal 
-          onClose={closeModal} 
-          schedule={schedule} 
-        />
+      {isModalOpen && !isClosed && (
+        <ScheduleFormModal onClose={closeModal} schedule={schedule} />
       )}
     </>
   );
