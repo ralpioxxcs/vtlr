@@ -50,7 +50,7 @@ def is_time_to_run(schedule_config):
 
         elif schedule_type == "HOURLY":
             exec_time = dt_time.fromisoformat(schedule_config.get("time"))
-            return now.minute == exec_time.minute
+            return now.hour == exec_time.hour and now.minute == exec_time.minute
     except Exception as e:
         logger.error(f"Error parsing schedule config: {schedule_config}. Error: {e}")
     return False
