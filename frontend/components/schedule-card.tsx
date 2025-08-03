@@ -1,10 +1,11 @@
 "use client";
 
-import { updateSchedule } from "@/pages/api/schedule";
+import { updateSchedule, deleteSchedule } from "@/pages/api/schedule";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { ClockIcon } from "@heroicons/react/24/outline";
+import { ClockIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { Mic, YouTube } from "@mui/icons-material";
+import ScheduleFormModal from "./ScheduleFormModal";
 
 interface ScheduleProps {
   queryId: string;
@@ -68,8 +69,6 @@ const formatScheduleTime = (config: any) => {
   }
 };
 
-import ScheduleFormModal from "./ScheduleFormModal";
-
 export default function ScheduleCard({ queryId, schedule }: ScheduleProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isClosed, setIsCloseClick] = useState(false);
@@ -82,6 +81,7 @@ export default function ScheduleCard({ queryId, schedule }: ScheduleProps) {
   const displayTime = formatScheduleTime(schedule.schedule_config);
 
   const queryClient = useQueryClient();
+
   const { mutate: handleActiveToggle } = useMutation({
     mutationFn: () => updateSchedule(schedule.id, { active: !schedule.active }),
     onMutate: async () => {
@@ -114,6 +114,18 @@ export default function ScheduleCard({ queryId, schedule }: ScheduleProps) {
     },
   });
 
+  const { mutate: handleDelete } = useMutation({
+    mutationFn: () => deleteSchedule(schedule.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["main"] });
+      queryClient.invalidateQueries({ queryKey: ["routine"] });
+      queryClient.invalidateQueries({ queryKey: ["event"] });
+    },
+    onError: (error) => {
+      alert(`삭제 중 오류가 발생했습니다: ${error.message}`);
+    },
+  });
+
   return (
     <>
       <div
@@ -142,6 +154,17 @@ export default function ScheduleCard({ queryId, schedule }: ScheduleProps) {
             </div>
           </div>
         </div>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (window.confirm("정말로 이 스케줄을 삭제하시겠습니까?")) {
+              handleDelete();
+            }
+          }}
+          className="ml-4 p-2 rounded-full hover:bg-gray-100 transition-colors"
+        >
+          <TrashIcon className="w-5 h-5 text-gray-500" />
+        </button>
       </div>
 
       {isModalOpen && !isClosed && (

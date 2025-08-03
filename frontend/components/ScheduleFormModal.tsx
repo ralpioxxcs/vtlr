@@ -87,6 +87,12 @@ export default function ScheduleFormModal({
     queryFn: getDevice,
   });
 
+  useEffect(() => {
+    if (!isEditMode && devices?.data?.length > 0 && !selectedDevice) {
+      setSelectedDevice(devices.data[0].deviceId);
+    }
+  }, [devices, isEditMode, selectedDevice]);
+
   // Mutations with optimistic updates
   const { mutate: createMutate } = useMutation({
     mutationFn: createSchedule,
@@ -197,7 +203,7 @@ export default function ScheduleFormModal({
       finalTitle =
         actionType === "TTS"
           ? ttsText
-            ? `TTS: "${ttsText.substring(0, 20)}..."`
+            ? `TTS: ${ttsText.substring(0, 20)}...`
             : "새로운 TTS 알림"
           : "YouTube 재생";
     }
@@ -233,7 +239,9 @@ export default function ScheduleFormModal({
 
   return (
     <Modal isOpen onClose={onClose} placement="center" scrollBehavior="outside">
-      <ModalContent onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}>
+      <ModalContent
+        onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}
+      >
         <ModalHeader className="flex flex-col gap-1">
           {isEditMode ? "스케줄 수정" : "새 스케줄 생성"}
         </ModalHeader>
