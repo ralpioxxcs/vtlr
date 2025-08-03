@@ -16,6 +16,8 @@ import { UserModule } from './user/user.module';
 import { UserModel } from './user/entities/user.entity';
 import { UserDevicesModel } from './user/entities/user-devices.entity';
 import { UserTTSModel } from './user/entities/user-tts.entity';
+import { BullModule } from '@nestjs/bullmq';
+import { MessageModule } from './message/message.module';
 
 @Module({
   imports: [
@@ -38,8 +40,15 @@ import { UserTTSModel } from './user/entities/user-tts.entity';
       ],
       //synchronize: true,
     }),
+    BullModule.forRoot({
+      connection: {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT) || 6379,
+      },
+    }),
     ScheduleModule,
     UserModule,
+    MessageModule,
   ],
   controllers: [AppController],
   providers: [AppService],

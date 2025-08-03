@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import HomeIcon from "@mui/icons-material/Home";
 import PlaylistAddCheckIcon from "@mui/icons-material/PlaylistAddCheck";
 import SettingsIcon from "@mui/icons-material/Settings";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 
 export const Sidebar = ({
   isNavVisible,
@@ -21,6 +22,7 @@ export const Sidebar = ({
 
   const navItems = [
     { label: "스케줄", path: "/", icon: <HomeIcon /> },
+    { label: "오늘", path: "/today", icon: <CalendarTodayIcon /> },
     { label: "할 일", path: "/task", icon: <PlaylistAddCheckIcon /> },
     { label: "설정", path: "/setting", icon: <SettingsIcon /> },
   ];

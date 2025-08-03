@@ -7,3 +7,4 @@ python-dotenv
 requests
 croniter
 pytz
+celery

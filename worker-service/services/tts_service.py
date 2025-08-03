@@ -6,7 +6,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-TTS_API_URL = os.getenv("TTS_API_URL", "http://localhost:8000")
+TTS_API_URL = os.getenv("TTS_API_URL", "http://localhost:4002")
 
 def request_tts(text: str, language: str = "ko") -> str | None:
     """

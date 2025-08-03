@@ -4,6 +4,7 @@ import { ScheduleModel } from './entities/schedule.entity';
 import { QueryRunner, Repository } from 'typeorm';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
+import { MessageService } from '../message/message.service';
 
 @Injectable()
 export class ScheduleService {
@@ -12,6 +13,7 @@ export class ScheduleService {
   constructor(
     @InjectRepository(ScheduleModel)
     private readonly scheduleRepository: Repository<ScheduleModel>,
+    private readonly messageService: MessageService,
   ) {}
 
   getRepository(qr?: QueryRunner) {
@@ -57,7 +59,9 @@ export class ScheduleService {
       const schedule = repo.create({
         ...scheduleDto,
       });
-      return await repo.save(schedule);
+      const newSchedule = await repo.save(schedule);
+      await this.messageService.addScheduleToQueue(newSchedule);
+      return newSchedule;
     } catch (error) {
       this.logger.error(`Error occurred creating schedule: ${error}`);
       throw error;
@@ -71,12 +75,22 @@ export class ScheduleService {
     this.logger.log(`Updating schedule with ID: ${id}`);
 
     try {
+      // First, remove the old job from the queue
+      await this.messageService.removeScheduleFromQueue(id);
+
       const schedule = await this.findScheduleById(id);
       const updatedSchedule = this.scheduleRepository.merge(
         schedule,
         scheduleDto,
       );
-      return await this.scheduleRepository.save(updatedSchedule);
+      const newSchedule = await this.scheduleRepository.save(updatedSchedule);
+
+      // Then, add the new job to the queue if it's still active
+      if (newSchedule.active) {
+        await this.messageService.addScheduleToQueue(newSchedule);
+      }
+
+      return newSchedule;
     } catch (error) {
       this.logger.error(`Error occurred updating schedule: ${error}`);
       throw error;
@@ -86,6 +100,7 @@ export class ScheduleService {
   async deleteSchedule(id: string): Promise<void> {
     this.logger.log(`Deleting schedule with ID: ${id}`);
     try {
+      await this.messageService.removeScheduleFromQueue(id);
       const result = await this.scheduleRepository.delete(id);
       if (result.affected === 0) {
         throw new NotFoundException(`Schedule with ID ${id} not found`);

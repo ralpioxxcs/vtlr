@@ -17,6 +17,19 @@ export async function getScheduleList(): Promise<ScheduleList[]> {
   }
 }
 
+export async function getSchedulesForToday() {
+  const schedules = await getScheduleList();
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+
+  return schedules.filter(schedule => {
+    if (schedule.schedule_config?.type === 'ONE_TIME') {
+      return schedule.schedule_config.datetime.startsWith(todayStr);
+    }
+    return false;
+  });
+}
+
 export async function createSchedule(scheduleData: object) {
   const url = `${baseURL}/v1.0/scheduler/schedule`;
 

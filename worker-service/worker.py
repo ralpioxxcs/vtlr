@@ -1,14 +1,11 @@
 import time
 import logging
-import queue
-import threading
-from datetime import datetime, time as dt_time
-from croniter import croniter
+from celery import Celery
 from dotenv import load_dotenv
 import os
-import pytz
+import redis
 
-from services import schedule_service, tts_service, chromecast_service
+from services import tts_service, chromecast_service, schedule_service
 
 # Load environment variables
 load_dotenv()
@@ -17,46 +14,39 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# --- Thread-safe Queue for Jobs ---
-execution_queue = queue.Queue()
+# Redis client for locking
+redis_client = redis.Redis(
+    host=os.getenv("REDIS_HOST", "localhost"),
+    port=int(os.getenv("REDIS_PORT", 6379)),
+    db=0
+)
 
-# --- Helper Functions ---
+# Celery configuration
+celery_app = Celery(
+    'worker',
+    broker=f'redis://{os.getenv("REDIS_HOST", "localhost")}:{os.getenv("REDIS_PORT", 6379)}/0',
+    backend=f'redis://{os.getenv("REDIS_HOST", "localhost")}:{os.getenv("REDIS_PORT", 6379)}/0'
+)
 
-def is_time_to_run(schedule_config):
-    """Checks if a schedule should be executed at the current time, based on KST."""
-    try:
-        kst = pytz.timezone('Asia/Seoul')
-        now = datetime.now(kst)
-        schedule_type = schedule_config.get("type")
+@celery_app.task(bind=True, name='worker.execute_schedule')
+def execute_schedule(self, schedule):
+    action_config = schedule.get("action_config", {})
+    device_id = action_config.get("deviceId")
+    if not device_id:
+        logger.error("No deviceId in action_config, cannot proceed.")
+        return
 
-        if schedule_type == "ONE_TIME":
-            naive_run_time = datetime.fromisoformat(schedule_config.get("datetime"))
-            kst_run_time = kst.localize(naive_run_time)
-            return now.year == kst_run_time.year and \
-                   now.month == kst_run_time.month and \
-                   now.day == kst_run_time.day and \
-                   now.hour == kst_run_time.hour and \
-                   now.minute == kst_run_time.minute
-        
-        elif schedule_type == "RECURRING":
-            exec_time = dt_time.fromisoformat(schedule_config.get("time"))
-            if now.hour != exec_time.hour or now.minute != exec_time.minute:
-                return False
-            day_map = {'월': 1, '화': 2, '수': 3, '목': 4, '금': 5, '토': 6, '일': 0}
-            cron_days = [str(day_map[d]) for d in schedule_config.get("days", [])]
-            if not cron_days: return False
-            cron_str = f"{exec_time.minute} {exec_time.hour} * * {','.join(cron_days)}"
-            return croniter.is_match(cron_str, now)
+    lock_key = f"lock:{device_id}"
+    lock_acquired = redis_client.set(lock_key, "locked", nx=True, ex=300)
 
-        elif schedule_type == "HOURLY":
-            exec_time = dt_time.fromisoformat(schedule_config.get("time"))
-            return now.hour == exec_time.hour and now.minute == exec_time.minute
-    except Exception as e:
-        logger.error(f"Error parsing schedule config: {schedule_config}. Error: {e}")
-    return False
+    if not lock_acquired:
+        logger.info(f"Device {device_id} is locked. Retrying job {self.request.id} in 5 seconds.")
+        raise self.retry(countdown=5)
 
-def execute_action(action_config):
-    """Sends request to execute the action and waits for it to complete."""
+    logger.info(f"Lock acquired for device {device_id}. Processing schedule: {schedule.get('title')}")
+
+    logger.info(f"Processing schedule from queue: {schedule.get('title')}")
+    action_config = schedule.get("action_config", {})
     action_type = action_config.get("type")
     device_id = action_config.get("deviceId")
     logger.info(f"Executing action: {action_type} on device: {device_id}")
@@ -71,7 +61,6 @@ def execute_action(action_config):
             media_url = tts_service.request_tts(text)
             if media_url:
                 chromecast_service.play_media(device_id, media_url, "audio/mp3")
-                # Wait for a fixed duration for TTS playback
                 tts_wait_time = int(os.getenv("TTS_DEFAULT_WAIT_SECONDS", 30))
                 logger.info(f"Waiting {tts_wait_time} seconds for TTS to complete.")
                 time.sleep(tts_wait_time)
@@ -88,55 +77,24 @@ def execute_action(action_config):
             else:
                 logger.warning("YouTube action has no duration, not waiting.")
 
+        if schedule.get("schedule_config", {}).get("type") == "ONE_TIME":
+            logger.info(f"Deactivating one-time schedule: {schedule.get('id')}")
+            schedule_service.update_schedule(schedule.get('id'), {'active': False})
+
     except Exception as e:
         logger.error(f"Failed to execute action {action_config}: {e}")
+    finally:
+        logger.info(f"Releasing lock for device {device_id}")
+        redis_client.delete(lock_key)
 
-def schedule_checker():
-    """Periodically checks for schedules and adds them to the execution_queue."""
-    logger.info("Starting schedule checker thread...")
-    while True:
-        try:
-            logger.info("Checking for schedules to run...")
-            schedules = schedule_service.get_all_schedules()
-            if schedules:
-                for schedule in schedules:
-                    if schedule.get("active") and is_time_to_run(schedule.get("schedule_config", {})):
-                        logger.info(f"Queueing schedule: {schedule.get('title')} (ID: {schedule.get('id')})")
-                        execution_queue.put(schedule)
-            
-            # "Smart Sleep" to synchronize with the start of the next minute
-            now = datetime.now()
-            seconds_to_wait = 60.0 - now.second - (now.microsecond / 1_000_000.0)
-            time.sleep(seconds_to_wait)
-        except Exception as e:
-            logger.error(f"An error occurred in the schedule_checker loop: {e}")
-            time.sleep(60)
+@celery_app.task(name='worker.delete_schedule')
+def delete_schedule(schedule_id):
+    # This is a placeholder for any cleanup needed when a schedule is deleted.
+    # For now, we just log it.
+    logger.info(f"Schedule {schedule_id} deleted. No action taken in worker.")
 
-def job_executor():
-    """Executes jobs from the queue one by one, sequentially."""
-    logger.info("Starting job executor thread...")
-    while True:
-        try:
-            schedule = execution_queue.get() # This blocks until a job is available
-            logger.info(f"Processing schedule from queue: {schedule.get('title')}")
-            execute_action(schedule.get("action_config", {}))
-            
-            if schedule.get("schedule_config", {}).get("type") == "ONE_TIME":
-                logger.info(f"Deactivating one-time schedule: {schedule.get('id')}")
-                schedule_service.update_schedule(schedule.get('id'), {'active': False})
-            
-            execution_queue.task_done()
-        except Exception as e:
-            logger.error(f"An error occurred in the job_executor loop: {e}")
-
-# --- Main Execution ---
 
 if __name__ == "__main__":
-    logger.info("Starting worker-service...")
-    
-    # Start the schedule checker in a background thread
-    checker_thread = threading.Thread(target=schedule_checker, daemon=True)
-    checker_thread.start()
-    
-    # Start the job executor in the main thread (or another background thread)
-    job_executor()
+    logger.info("Starting worker-service with Celery...")
+    # To run the worker, use the command:
+    # celery -A worker.celery_app worker --loglevel=info

@@ -4,9 +4,12 @@ import { useState } from "react";
 import { Button } from "@heroui/react";
 import AddIcon from "@mui/icons-material/Add";
 import ScheduleFormModal from "./ScheduleFormModal";
+import TodayScheduleModal from "./TodayScheduleModal";
+import { usePathname } from "next/navigation";
 
 export default function CreateScheduleFab() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const pathname = usePathname();
 
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
@@ -31,7 +34,12 @@ export default function CreateScheduleFab() {
           <AddIcon />
         </Button>
       </div>
-      {isModalOpen && <ScheduleFormModal onClose={closeModal} />}
+      {isModalOpen &&
+        (pathname === "/today" ? (
+          <TodayScheduleModal onClose={closeModal} />
+        ) : (
+          <ScheduleFormModal onClose={closeModal} />
+        ))}
     </>
   );
 }

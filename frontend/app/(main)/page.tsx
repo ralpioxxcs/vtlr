@@ -5,6 +5,7 @@ import ScheduleCard from "@/components/schedule-card";
 import { getScheduleList } from "@/pages/api/schedule";
 import { Spinner, Button } from "@heroui/react";
 import { useQuery } from "@tanstack/react-query";
+import CreateScheduleFab from "@/components/CreateScheduleFab";
 
 type FilterType = "ALL" | "ROUTINE" | "EVENT";
 
@@ -71,6 +72,7 @@ export default function Home() {
           </p>
         </div>
       )}
+      <CreateScheduleFab />
     </div>
   );
 }
