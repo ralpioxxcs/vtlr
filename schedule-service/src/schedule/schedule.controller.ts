@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseInterceptors,
 } from '@nestjs/common';
 import { ScheduleService } from './schedule.service';
@@ -25,8 +26,11 @@ export class ScheduleController {
   constructor(private readonly scheduleService: ScheduleService) {}
 
   @Get()
-  async getAllSchedules() {
-    return this.scheduleService.findAllSchedules();
+  async getAllSchedules(
+    @Query('date') date?: string,
+    @Query('schduleTypes') scheduleTypes?: string[],
+  ) {
+    return this.scheduleService.findAllSchedules(date, scheduleTypes);
   }
 
   @Post()

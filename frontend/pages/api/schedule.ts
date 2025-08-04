@@ -2,6 +2,14 @@ import type { ScheduleList } from "Type";
 
 const baseURL = process.env.NEXT_PUBLIC_SCHEDULE_SERVER;
 
+function formatDate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
 export async function getScheduleList(): Promise<ScheduleList[]> {
   const url = `${baseURL}/v1.0/scheduler/schedule`;
 
@@ -18,16 +26,28 @@ export async function getScheduleList(): Promise<ScheduleList[]> {
 }
 
 export async function getSchedulesForToday() {
-  const schedules = await getScheduleList();
-  const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
+  try {
+    const today = new Date();
+    const dateString = formatDate(today);
 
-  return schedules.filter(schedule => {
-    if (schedule.schedule_config?.type === 'ONE_TIME') {
-      return schedule.schedule_config.datetime.startsWith(todayStr);
+    const params = new URLSearchParams({ date: dateString });
+    const url = `${baseURL}/v1.0/scheduler/schedule?${params}`;
+
+    console.log(`🚀 요청 URL: ${url}`);
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(
+        `server error: ${response.status} ${response.statusText}`,
+      );
     }
-    return false;
-  });
+    const data = await response.json();
+    return data;
+  } catch (err) {
+    console.error(`Error fetching schedule list: ${err}`);
+    throw err;
+  }
 }
 
 export async function createSchedule(scheduleData: object) {
@@ -43,7 +63,9 @@ export async function createSchedule(scheduleData: object) {
     });
     if (!response.ok) {
       const errorBody = await response.text();
-      throw new Error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
+      throw new Error(
+        `HTTP error! status: ${response.status}, body: ${errorBody}`,
+      );
     }
     return await response.json();
   } catch (err) {

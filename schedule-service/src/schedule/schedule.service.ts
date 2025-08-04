@@ -1,10 +1,12 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ScheduleModel } from './entities/schedule.entity';
-import { QueryRunner, Repository } from 'typeorm';
+import { Between, QueryRunner, Repository } from 'typeorm';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { MessageService } from '../message/message.service';
+import { endOfDay, startOfDay } from 'date-fns';
+import { fromZonedTime } from 'date-fns-tz';
 
 @Injectable()
 export class ScheduleService {
@@ -22,17 +24,23 @@ export class ScheduleService {
       : this.scheduleRepository;
   }
 
-  async findAllSchedules() {
-    try {
-      return await this.scheduleRepository.find({
-        order: {
-          createdAt: 'DESC',
-        },
-      });
-    } catch (error) {
-      this.logger.error(`Error occurred finding schedules: ${error}`);
-      throw error;
+  async findAllSchedules(date?: string, scheduleTypes?: string[]) {
+    const queryBuilder = this.scheduleRepository.createQueryBuilder('item');
+
+    // order by createdAt in descending order
+    queryBuilder.orderBy('item.createdAt', 'DESC');
+
+    if (date) {
+      const datePattern = `${date}%`;
+      queryBuilder.andWhere(
+        `item.schedule_config ->> 'datetime' LIKE :datePattern`,
+        { datePattern },
+      );
     }
+
+    const items = await queryBuilder.getMany();
+
+    return items;
   }
 
   async findScheduleById(id: string) {

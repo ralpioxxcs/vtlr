@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
   },
   output: "standalone",
   env: {
-    // NEXT_PUBLIC_SCHEDULE_SERVER: "http://172.21.89.210:4000",
+    // NEXT_PUBLIC_SCHEDULE_SERVER: "http://127.0.0.1:4004",
     // NEXT_PUBLIC_DEVICE_SERVER: "http://172.21.89.210:4001",
     // NEXT_PUBLIC_TTS_SERVER: "http://172.21.89.210:4002",
     NEXT_PUBLIC_DEVICE_SERVER: "http://api.vutler.io",
